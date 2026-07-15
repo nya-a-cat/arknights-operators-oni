@@ -68,6 +68,7 @@ namespace ArknightsOperatorsMod {
 		private CancellationTokenSource loadCancellation;
 		private IDisposable resourceLease;
 		private int loadGeneration;
+		private OperatorAppearanceOverride appearanceOverride;
 		private ModConfig appearanceConfig;
 		private string activeModel;
 		private string loadingModel;
@@ -87,10 +88,13 @@ namespace ArknightsOperatorsMod {
 			try {
 				sourceAnim = GetComponent<KBatchedAnimController>();
 				navigator = GetComponent<Navigator>();
+				appearanceOverride = GetComponent<OperatorAppearanceOverride>();
+				if (appearanceOverride == null)
+					appearanceOverride = gameObject.AddComponent<OperatorAppearanceOverride>();
 				RefreshSourceAnimations();
 				CreateVisualRoot();
 				ModConfigStore.AppearanceChanged += OnAppearanceChanged;
-				appearanceConfig = ModConfigStore.Current;
+				appearanceConfig = ResolveAppearanceConfig(ModConfigStore.Current);
 				BeginAppearanceLoad(ConfigForEffectiveAnimation(CurrentEffectiveAnimation()), true);
 			} catch (Exception ex) {
 				Debug.LogError("[ArknightsOperatorsMod] Failed to attach overlay: " + ex);
@@ -154,11 +158,24 @@ namespace ArknightsOperatorsMod {
 		}
 
 		private void OnAppearanceChanged(ModConfig config) {
+			ApplyAppearanceConfig(ResolveAppearanceConfig(config));
+		}
+
+		private void ApplyAppearanceConfig(ModConfig config) {
+			if (config == null) return;
+			if (appearanceConfig != null && string.Equals(
+				ModConfigStore.AppearanceKey(appearanceConfig),
+				ModConfigStore.AppearanceKey(config), StringComparison.Ordinal)) return;
 			appearanceConfig = ModConfigStore.Clone(config);
 			manualAction = null;
 			lastAttemptedModel = null;
 			modelCandidate = null;
 			BeginAppearanceLoad(ConfigForEffectiveAnimation(CurrentEffectiveAnimation()), !sourceHidden);
+		}
+
+		private ModConfig ResolveAppearanceConfig(ModConfig globalConfig) {
+			return appearanceOverride == null ? ModConfigStore.Clone(globalConfig) :
+				appearanceOverride.Resolve(globalConfig);
 		}
 
 		private void BeginAppearanceLoad(ModConfig config, bool allowFallback) {
@@ -301,6 +318,37 @@ namespace ArknightsOperatorsMod {
 
 		internal string ActiveModel {
 			get { return activeModel; }
+		}
+
+		internal string DuplicantName {
+			get {
+				MinionIdentity identity = GetComponent<MinionIdentity>();
+				return identity == null ? gameObject.name : identity.GetProperName();
+			}
+		}
+
+		internal bool HasIndividualAppearance {
+			get { return appearanceOverride != null && appearanceOverride.HasOverride; }
+		}
+
+		internal ModConfig CurrentAppearanceConfig {
+			get { return ResolveAppearanceConfig(ModConfigStore.Current); }
+		}
+
+		internal void SetIndividualAppearance(string characterId, string skin, string model) {
+			if (appearanceOverride == null)
+				appearanceOverride = gameObject.AddComponent<OperatorAppearanceOverride>();
+			appearanceOverride.Set(characterId, skin, model);
+			ApplyAppearanceConfig(ResolveAppearanceConfig(ModConfigStore.Current));
+			Debug.Log("[ArknightsOperatorsMod] Individual appearance " + characterId + " " +
+				skin + "/" + model + " for " + DuplicantName);
+		}
+
+		internal void ClearIndividualAppearance() {
+			if (appearanceOverride == null || !appearanceOverride.HasOverride) return;
+			appearanceOverride.Clear();
+			ApplyAppearanceConfig(ResolveAppearanceConfig(ModConfigStore.Current));
+			Debug.Log("[ArknightsOperatorsMod] Global appearance restored for " + DuplicantName);
 		}
 
 		private ModConfig ConfigForEffectiveAnimation(string effectiveAnimation) {

@@ -20,20 +20,20 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 > [!IMPORTANT]
 > Version `0.3.2-alpha.1` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
 >
-> The selected appearance is currently global and applies to every duplicant.
+> Each duplicant can keep its own operator, skin, and model. A global default remains available for new duplicants and for duplicants without an individual override.
 >
 > This is an Alpha release. Several game-integration scenarios remain under validation.
 >
 > Steam Workshop title: **Arknights Operators / 明日方舟干员 [Alpha]**. In-game Mods menu title: **Arknights Operators（明日方舟干员）**.
 
-The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 740622. Live switching was verified with `Surtr`, `阿米娅`, and `テキサス` searches.
+The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 740622. Texas, Amiya, Kal'tsit, and Exusiai were assigned to four different duplicants, saved, and restored after a full save reload.
 
 ## What makes it special?
 
 - Search a catalog of 449 operators by Chinese, English, or Japanese name, PRTS redirect alias, or `char_id` inside the game.
 - Use automatically selected Chinese or English option labels; operator display names prefer Chinese, Japanese, or English according to the current game language and available PRTS metadata.
 - Select an operator, skin, and model through linked controls.
-- Open the same selection interface from Mod Options or in a loaded save with `Ctrl+F8`, then apply the new appearance live.
+- Select a duplicant and press `Ctrl+F8` to assign its operator, skin, and model live; use `Ctrl+Shift+F8` for global defaults.
 - Render Spine 3.8 Region/Mesh attachments, clipping, multiple atlas pages, and common blend modes directly in C#.
 - Map ONI movement, work, rest, sleep, stress, and death states to available operator animations.
 - Automatically use base models for daily/sleep states and front combat models for digging, combat, stun, and death.
@@ -100,7 +100,8 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [x] Live switching from Options and `Ctrl+F8`
 - [x] Runtime animation mapping and ground alignment
 - [x] Semantic build/battle animation profiles and a per-duplicant `Ctrl+F9` action wheel
-- [ ] Per-duplicant appearance and voice settings
+- [x] Per-duplicant operator, skin, and model settings with save persistence
+- [ ] Per-duplicant voice settings
 - [ ] Operator voice with language selection, preview, cooldown, and priority
 - [ ] Appearance preview, favourites, presets, and Printing Pod assignment pools
 

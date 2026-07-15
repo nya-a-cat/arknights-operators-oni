@@ -29,6 +29,15 @@ namespace ArknightsOperatorsMod {
 		}
 	}
 
+	[HarmonyPatch(typeof(BaseMinionConfig), "BaseMinion")]
+	public static class BaseMinionConfigBaseMinionPatch {
+		public static void Postfix(GameObject __result) {
+			if (__result == null) return;
+			if (__result.GetComponent<OperatorAppearanceOverride>() == null)
+				__result.AddComponent<OperatorAppearanceOverride>();
+		}
+	}
+
 	[HarmonyPatch(typeof(Game), "OnPrefabInit")]
 	public static class GameOnPrefabInitPatch {
 		public static void Postfix(Game __instance) {
