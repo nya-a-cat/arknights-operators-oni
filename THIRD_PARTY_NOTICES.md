@@ -19,4 +19,6 @@ The Spine runtime is distributed under Esoteric Software's Spine Runtimes licens
 
 ## Game and operator assets
 
-This repository does not include Arknights images, exported animation sheets, Spine skeleton files, atlas files, or copied PRTS web bundles. They are excluded by `.gitignore`. Runtime requests are limited to the appearance explicitly selected by the user.
+The Git source repository does not include Arknights images, exported animation sheets, Spine skeleton files, atlas files, or copied PRTS web bundles. They are excluded by `.gitignore`.
+
+The optional GitHub Release fallback snapshot contains operator-scoped copies of the atlas, skeleton, and texture files required by the 449-entry runtime catalog. The snapshot is generated from the PRTS resource host, separated from original program code, versioned independently, and fetched only after the primary PRTS path fails. Runtime extraction remains limited to the appearance selected by the user; the containing operator package follows the configured cache-retention policy.

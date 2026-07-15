@@ -1,0 +1,120 @@
+name: Build operator fallback Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable asset snapshot tag referenced by the Mod
+        required: true
+        default: assets-v1.0.0
+      snapshot_id:
+        description: Human-readable snapshot identifier
+        required: true
+        default: prts-2026-07-15
+      expected_operator_count:
+        description: Fail if the merged manifest does not contain this many operators
+        required: true
+        default: "449"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: operator-fallback-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create draft asset Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = "true"
+          else
+            gh release create "$RELEASE_TAG" \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "Operator asset fallback $SNAPSHOT_ID" \
+              --notes "Generated fallback snapshot. Keep this Release as a draft until all 449 packages and the merged manifest have been verified."
+          fi
+
+  build-shards:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build operator packages
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          SNAPSHOT_ID: ${{ inputs.snapshot_id }}
+        run: |
+          python3 arknights_oni_mod_work/AmiyaDuplicantMod/tools/build_operator_fallback_release.py build \
+            --catalog arknights_oni_mod_work/AmiyaDuplicantMod/assets/catalog/operator_appearances_20260604.json \
+            --output "dist/shard-${{ matrix.shard }}" \
+            --release-tag "$RELEASE_TAG" \
+            --snapshot-id "$SNAPSHOT_ID" \
+            --shard-index "${{ matrix.shard }}" \
+            --shard-count 8 \
+            --workers 1
+      - name: Upload packages to the draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            dist/shard-${{ matrix.shard }}/packages/*.zip \
+            --clobber
+      - name: Preserve the partial manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: fallback-partial-${{ matrix.shard }}
+          path: dist/shard-${{ matrix.shard }}/partial-*.json
+          if-no-files-found: error
+
+  finalize-manifest:
+    needs: build-shards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fallback-partial-*
+          path: dist/partials
+      - name: Merge and validate all operator records
+        env:
+          EXPECTED_OPERATOR_COUNT: ${{ inputs.expected_operator_count }}
+        run: |
+          python3 arknights_oni_mod_work/AmiyaDuplicantMod/tools/build_operator_fallback_release.py merge \
+            --partials dist/partials \
+            --output dist/operator-asset-fallback-manifest-v1.json \
+            --expected-count "$EXPECTED_OPERATOR_COUNT"
+      - name: Upload the stable manifest to the draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            dist/operator-asset-fallback-manifest-v1.json \
+            --clobber
+      - name: Record draft handoff
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          EXPECTED_OPERATOR_COUNT: ${{ inputs.expected_operator_count }}
+        run: |
+          {
+            echo "## Fallback snapshot ready for review"
+            echo
+            echo "- Release tag: $RELEASE_TAG"
+            echo "- Operators: $EXPECTED_OPERATOR_COUNT"
+            echo "- State: draft; publication remains a separate maintainer action"
+          } >> "$GITHUB_STEP_SUMMARY"

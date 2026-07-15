@@ -31,6 +31,7 @@ arknights_oni_mod_work/AmiyaDuplicantMod/build_preview.sh
 # Test/cache output
 **/.test-cache/
 **/.tmp/
+**/__pycache__/
 **/*.part
 **/cache-index.json
 *.log

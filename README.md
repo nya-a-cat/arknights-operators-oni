@@ -35,6 +35,7 @@ The current release has been smoke-tested in a four-duplicant isolated save on O
 - Choose between a bounded 512 MiB on-demand LRU cache and permanent retention of downloaded resources.
 - Merge concurrent requests for the same resource while allowing each duplicant to cancel its own wait independently.
 - Verify downloads with HTTPS source restrictions, temporary files, a SHA-256 index, and a 64 MiB per-file limit.
+- Recover all 449 catalog operators through a versioned manifest and per-operator GitHub Release packages when PRTS metadata or asset delivery fails.
 - Fall back through the original duplicant visual, an optional bundled Spine asset, and the legacy frame path when an appearance cannot be loaded.
 
 ## Installation
@@ -65,7 +66,9 @@ Set `ONI_GAME_ROOT` to override the game directory or `ONI_LOCAL_MOD_DIR` to ove
 > [!TIP]
 > Start the game through Steam, enable **Arknights Operators（明日方舟干员）** in the Mods menu, and restart when prompted. Launching the game executable directly can trigger Klei's Mod Safe Mode in some Steam environments.
 
-The repository does not distribute Arknights artwork, Spine skeletons, atlases, or PRTS web bundles. When an appearance is selected for the first time, the Mod fetches only the small files required for that appearance from the PRTS resource domain. A single file is capped at 64 MiB, and the workflow does not introduce an individual dependency larger than 100 MB.
+The Git source repository does not contain Arknights artwork, Spine skeletons, atlases, or copied PRTS web bundles. PRTS remains the primary on-demand source. If its metadata contract or file delivery fails, the Mod loads a pinned fallback manifest and the selected operator's package from the project's GitHub Release. The full 449-operator snapshot is generated on GitHub Actions, so contributors do not need to download it locally.
+
+The existing 64 MiB limit applies to an individual Spine source file as a download safety check. Release packages are fetched only for the selected operator and have a separate 512 MiB technical safety ceiling. The 100 MB preference used during local development is a disk-space preference: the cloud builder reports larger packages and continues.
 
 ## Resource strategies
 
@@ -75,6 +78,10 @@ The repository does not distribute Arknights artwork, Spine skeletons, atlases, 
 | Keep downloaded resources | Fetch only the selected appearance and retain successfully cached files without capacity eviction. | Reusing visited appearances offline |
 
 Neither mode pre-downloads the full operator catalog.
+
+Fallback packages follow the same retention choice. On-demand mode may evict an unused operator package under the 512 MiB LRU budget; permanent mode keeps successfully downloaded packages.
+
+See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md) for the manifest contract, cloud build flow, trust boundary, and publication checklist.
 
 ## Current progress & Roadmap
 
@@ -99,6 +106,8 @@ Neither mode pre-downloads the full operator catalog.
 
 - [x] Automatic Chinese/English localization for the operator options interface
 - [x] Chinese/English/Japanese operator-name search from PRTS encyclopedia metadata
+- [x] Versioned all-operator fallback manifest, verified Release-package loader, and sharded GitHub Actions builder
+- [ ] Generate, inspect, and publish the initial 449-operator `assets-v1.0.0` snapshot
 - [ ] Move remaining runtime errors and diagnostics into ONI `STRINGS` resources and add more interface locales
 - [ ] Cache manager, download status, and diagnostics export
 - [ ] Versioned configuration migration and catalog updates
@@ -122,10 +131,12 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 ./tests/run_operator_appearance_catalog_tests.sh
 ./tests/run_mod_localization_tests.sh
 ./tests/run_resource_index_tests.sh
+python3 ./tests/test_fallback_release_builder.py
+./tests/run_operator_fallback_tests.sh
 ./tests/run_operator_asset_resolver_integration.sh
 ```
 
-The final integration test downloads a real, small PRTS fixture. The remaining tests use only local code and fixtures.
+The final integration test downloads a real, small PRTS fixture. The fallback test uses an in-memory Release package and simulated primary-source failure. The remaining tests use only local code and fixtures.
 
 ## Repository layout
 
@@ -137,6 +148,6 @@ The final integration test downloads a real, small PRTS fixture. The remaining t
 
 ## Project boundaries & third-party components
 
-This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public repository contains original Mod source code, tests, development notes, lightweight catalog metadata, separately licensed third-party code, and a promotional montage made from real gameplay screenshots. Runtime artwork and animation assets are retrieved by the user on demand.
+This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public Git repository contains original Mod source code, tests, development notes, lightweight catalog metadata, separately licensed third-party code, and a promotional montage made from real gameplay screenshots. Runtime artwork and animation assets are retrieved by the user on demand from PRTS or, after a primary-source failure, from a versioned project Release snapshot.
 
 No additional open-source license is currently granted for the original code. PLib, the Spine runtime, and catalog metadata remain subject to their respective licenses and source notices. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) and [DATA_NOTICE.md](./DATA_NOTICE.md).

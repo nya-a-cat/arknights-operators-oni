@@ -23,6 +23,8 @@ printf '%s\n' \
   "$ROOT/src/PrtsAssetClient.cs" \
   "$ROOT/src/PrtsResourceService.cs" \
   "$ROOT/src/ResourceIndex.cs" \
+  "$ROOT/src/OperatorAssetFallbackManifest.cs" \
+  "$ROOT/src/OperatorFallbackPackageInstaller.cs" \
   "$ROOT/src/OperatorAssetResolver.cs" \
   "$ROOT/tests/OperatorAssetResolverIntegrationTests.cs" >> "$RSP"
 
@@ -31,6 +33,7 @@ mcs \
   -out:"$OUT" \
   -r:"$MANAGED/Newtonsoft.Json.dll" \
   -r:System.Core \
+  -r:System.IO.Compression \
   -r:System.Net.Http \
   -r:System.Runtime.Serialization \
   @"$RSP"

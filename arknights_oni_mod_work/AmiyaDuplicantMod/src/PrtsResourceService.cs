@@ -25,16 +25,25 @@ namespace AmiyaDuplicantMod {
 			get { return index.GetIndexedDiskUsage(); }
 		}
 
-		private PrtsResourceService() {
+		private PrtsResourceService(PrtsAssetClient assetClient) {
 			index = new ResourceIndexStore(ModAssets.CacheIndexPath, ModAssets.SharedAssetsRoot);
-			client = new PrtsAssetClient();
+			client = assetClient ?? new PrtsAssetClient();
 		}
 
 		public static void Initialize() {
 			if (Instance != null)
 				return;
 			ModAssets.InitializeSharedStorage();
-			Instance = new PrtsResourceService();
+			Instance = new PrtsResourceService(null);
+		}
+
+		internal static void InitializeForTests(PrtsAssetClient assetClient) {
+			if (Instance != null)
+				throw new InvalidOperationException("Resource service is already initialized");
+			if (assetClient == null)
+				throw new ArgumentNullException("assetClient");
+			ModAssets.InitializeSharedStorage();
+			Instance = new PrtsResourceService(assetClient);
 		}
 
 		public static void Shutdown() {
@@ -145,7 +154,13 @@ namespace AmiyaDuplicantMod {
 				).ConfigureAwait(false);
 				Directory.CreateDirectory(Path.GetDirectoryName(destination));
 				AtomicFile.Replace(partPath, destination);
-				index.Upsert(CreateEntry(request, downloaded.Length, downloaded.Sha256));
+				index.Upsert(CreateEntry(
+					request,
+					downloaded.Length,
+					downloaded.Sha256,
+					downloaded.SourceUri,
+					downloaded.ResourceVersion
+				));
 				ApplyCachePolicy(request.Key);
 				return destination;
 			} catch (OperationCanceledException) {
@@ -168,6 +183,35 @@ namespace AmiyaDuplicantMod {
 		public int ClearDownloadedResources() {
 			ThrowIfDisposed();
 			return index.Clear();
+		}
+
+		internal string CommitVerifiedFile(
+			PrtsAssetRequest request,
+			string stagedPath,
+			Uri sourceUri,
+			string resourceVersion
+		) {
+			ThrowIfDisposed();
+			if (request == null) throw new ArgumentNullException("request");
+			if (string.IsNullOrEmpty(stagedPath) || !File.Exists(stagedPath))
+				throw new FileNotFoundException("Verified staged asset is missing", stagedPath);
+			if (!IsCachedFileUsable(request, stagedPath, null))
+				throw new InvalidDataException("Staged fallback asset does not match its manifest");
+
+			string destination = ResolveDestinationPath(request.RelativePath);
+			long stagedLength = new FileInfo(stagedPath).Length;
+			string sha256 = ComputeSha256(stagedPath);
+			Directory.CreateDirectory(Path.GetDirectoryName(destination));
+			AtomicFile.Replace(stagedPath, destination);
+			index.Upsert(CreateEntry(
+				request,
+				stagedLength,
+				sha256,
+				sourceUri,
+				resourceVersion
+			));
+			ApplyCachePolicy(request.Key);
+			return destination;
 		}
 
 		public long RunCacheMaintenance() {
@@ -223,13 +267,17 @@ namespace AmiyaDuplicantMod {
 		private static ResourceIndexEntry CreateEntry(
 			PrtsAssetRequest request,
 			long length,
-			string sha256
+			string sha256,
+			Uri sourceUri = null,
+			string resourceVersion = null
 		) {
 			return new ResourceIndexEntry {
 				Key = request.Key,
 				RelativePath = NormalizeRelativePath(request.RelativePath),
-				SourceUrl = request.SourceUri.AbsoluteUri,
-				ResourceVersion = request.ResourceVersion,
+				SourceUrl = (sourceUri ?? request.SourceUri).AbsoluteUri,
+				ResourceVersion = string.IsNullOrEmpty(resourceVersion)
+					? request.ResourceVersion
+					: resourceVersion,
 				Length = length,
 				Sha256 = sha256,
 				LastAccessUtc = System.DateTime.UtcNow
@@ -242,16 +290,28 @@ namespace AmiyaDuplicantMod {
 			ResourceIndexEntry entry
 		) {
 			FileInfo file = new FileInfo(path);
-			long expectedLength = request.ExpectedLength ?? (entry == null ? -1L : entry.Length);
+			string actualHash = null;
+			bool hasManifestHash = false;
+			for (int i = 0; i < request.Sources.Count; i++) {
+				PrtsAssetSource source = request.Sources[i];
+				if (string.IsNullOrEmpty(source.ExpectedSha256))
+					continue;
+				hasManifestHash = true;
+				if (source.ExpectedLength.HasValue && file.Length != source.ExpectedLength.Value)
+					continue;
+				if (actualHash == null)
+					actualHash = ComputeSha256(path);
+				if (string.Equals(actualHash, source.ExpectedSha256, StringComparison.OrdinalIgnoreCase))
+					return true;
+			}
+			if (hasManifestHash)
+				return false;
+			long expectedLength = entry == null ? -1L : entry.Length;
 			if (expectedLength >= 0L && file.Length != expectedLength)
 				return false;
-			string expectedHash = !string.IsNullOrEmpty(request.ExpectedSha256)
-				? request.ExpectedSha256
-				: entry == null ? string.Empty : entry.Sha256;
+			string expectedHash = entry == null ? string.Empty : entry.Sha256;
 			return string.IsNullOrEmpty(expectedHash) || string.Equals(
-				ComputeSha256(path),
-				expectedHash,
-				StringComparison.OrdinalIgnoreCase
+				ComputeSha256(path), expectedHash, StringComparison.OrdinalIgnoreCase
 			);
 		}
 

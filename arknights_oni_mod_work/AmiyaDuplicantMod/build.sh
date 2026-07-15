@@ -41,6 +41,7 @@ find "$ROOT/src" "$ROOT/lib/spine-csharp-src" -name '*.cs' | sort > "$RSP"
   -r:"$MANAGED/0Harmony.dll" \
   -r:"$MANAGED/netstandard.dll" \
   -r:"$MANAGED/System.Net.Http.dll" \
+  -r:"$MANAGED/System.IO.Compression.dll" \
   -r:"$MANAGED/System.Runtime.Serialization.dll" \
   -r:"$MANAGED/Assembly-CSharp-firstpass.dll" \
   -r:"$MANAGED/Assembly-CSharp.dll" \

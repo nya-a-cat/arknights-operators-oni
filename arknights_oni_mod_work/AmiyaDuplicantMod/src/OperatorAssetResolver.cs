@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace AmiyaDuplicantMod {
 	public sealed class OperatorAssetBundle {
@@ -36,6 +37,11 @@ namespace AmiyaDuplicantMod {
 
 	public sealed class OperatorAssetResolver {
 		private const string AssetRoot = "https://torappu.prts.wiki/assets/char_spine/";
+		private const string FallbackReleaseTag = "assets-v1.0.0";
+		private const string FallbackManifestName = "operator-asset-fallback-manifest-v1.json";
+		private const string FallbackManifestUrl =
+			"https://github.com/nya-a-cat/arknights-oni/releases/download/" +
+			FallbackReleaseTag + "/" + FallbackManifestName;
 		private readonly PrtsResourceService resources;
 
 		public OperatorAssetResolver(PrtsResourceService resources) {
@@ -45,6 +51,73 @@ namespace AmiyaDuplicantMod {
 		public async Task<OperatorAssetBundle> ResolveAsync(ModConfig config, CancellationToken cancellationToken) {
 			if (config == null) throw new ArgumentNullException("config");
 			string characterId = ValidatePathToken(config.DefaultCharacterId, "character ID");
+			Exception primaryError;
+			try {
+				return await ResolveFromPrtsAsync(config, characterId, cancellationToken).ConfigureAwait(false);
+			} catch (OperationCanceledException) {
+				throw;
+			} catch (Exception error) {
+				primaryError = error;
+			}
+
+			try {
+				OperatorAssetFallbackManifest manifest = await LoadFallbackManifestAsync(cancellationToken)
+					.ConfigureAwait(false);
+				OperatorFallbackPackage package;
+				OperatorFallbackAppearance appearance = manifest.Choose(
+					characterId,
+					config.PreferredSkin,
+					config.PreferredModel,
+					out package
+				);
+				if (appearance == null)
+					throw new InvalidDataException("Fallback snapshot has no entry for " + characterId);
+
+				Debug.LogWarning(
+					"[AmiyaDuplicantMod] PRTS resolution failed; using fallback snapshot " +
+					manifest.SnapshotId + ": " + primaryError.Message
+				);
+				try {
+					return await ResolveFromFallbackFilesAsync(
+						package,
+						appearance,
+						cancellationToken
+					).ConfigureAwait(false);
+				} catch (OperationCanceledException) {
+					throw;
+				} catch (Exception directError) {
+					Debug.LogWarning(
+						"[AmiyaDuplicantMod] PRTS snapshot files failed; installing the Release package: " +
+						directError.Message
+					);
+					await OperatorFallbackPackageInstaller.InstallAsync(
+						resources,
+						package,
+						appearance,
+						cancellationToken
+					).ConfigureAwait(false);
+					return await ResolveFromFallbackFilesAsync(
+						package,
+						appearance,
+						cancellationToken
+					).ConfigureAwait(false);
+				}
+			} catch (OperationCanceledException) {
+				throw;
+			} catch (Exception fallbackError) {
+				throw new AggregateException(
+					"Operator assets failed from PRTS and the GitHub Release fallback",
+					primaryError,
+					fallbackError
+				);
+			}
+		}
+
+		private async Task<OperatorAssetBundle> ResolveFromPrtsAsync(
+			ModConfig config,
+			string characterId,
+			CancellationToken cancellationToken
+		) {
 			Uri metaUri = new Uri(AssetRoot + Uri.EscapeDataString(characterId) + "/meta.json");
 			string metaRelativePath = Path.Combine("operators", characterId, "meta.json");
 			string refreshBucket = System.DateTime.UtcNow.ToString("yyyyMMdd");
@@ -104,6 +177,102 @@ namespace AmiyaDuplicantMod {
 
 			return new OperatorAssetBundle(characterId, (string)meta["name"] ?? characterId,
 				skin.Name, model.Name, resourceVersion, atlasPath, skeletonPath, texturePaths, resourceKeys);
+		}
+
+		private async Task<OperatorAssetFallbackManifest> LoadFallbackManifestAsync(
+			CancellationToken cancellationToken
+		) {
+			PrtsAssetRequest request = new PrtsAssetRequest(
+				"operator-fallback-manifest:" + FallbackReleaseTag,
+				new Uri(FallbackManifestUrl),
+				Path.Combine("fallback", "manifests", FallbackManifestName),
+				FallbackReleaseTag
+			);
+			string path = await resources.GetOrDownloadAsync(request, cancellationToken).ConfigureAwait(false);
+			return OperatorAssetFallbackManifest.Load(path);
+		}
+
+		private async Task<OperatorAssetBundle> ResolveFromFallbackFilesAsync(
+			OperatorFallbackPackage package,
+			OperatorFallbackAppearance appearance,
+			CancellationToken cancellationToken
+		) {
+			OperatorFallbackFile atlasFile = appearance.FindFile("atlas");
+			OperatorFallbackFile skeletonFile = appearance.FindFile("skel");
+			List<string> resourceKeys = new List<string>();
+			string atlasKey = AssetKeyForFile(package.CharacterId, appearance, atlasFile);
+			string skeletonKey = AssetKeyForFile(package.CharacterId, appearance, skeletonFile);
+			string atlasPath = await resources.GetOrDownloadAsync(
+				CreateFallbackFileRequest(atlasKey, appearance, atlasFile),
+				cancellationToken
+			).ConfigureAwait(false);
+			string skeletonPath = await resources.GetOrDownloadAsync(
+				CreateFallbackFileRequest(skeletonKey, appearance, skeletonFile),
+				cancellationToken
+			).ConfigureAwait(false);
+			resourceKeys.Add(atlasKey);
+			resourceKeys.Add(skeletonKey);
+
+			IList<string> pages = ParseAtlasPages(File.ReadAllText(atlasPath));
+			if (pages.Count == 0)
+				throw new InvalidDataException("Fallback atlas has no texture pages");
+			List<string> texturePaths = new List<string>();
+			for (int i = 0; i < pages.Count; i++) {
+				string pageName = ValidateRelativeAssetPath(pages[i]);
+				if (pageName.IndexOf('/') >= 0)
+					throw new InvalidDataException("Nested atlas page paths are not supported: " + pageName);
+				OperatorFallbackFile pageFile = appearance.FindFile("page", pageName);
+				if (pageFile == null)
+					throw new InvalidDataException("Fallback manifest has no atlas page: " + pageName);
+				string pageKey = AssetKeyForFile(package.CharacterId, appearance, pageFile);
+				texturePaths.Add(await resources.GetOrDownloadAsync(
+					CreateFallbackFileRequest(pageKey, appearance, pageFile),
+					cancellationToken
+				).ConfigureAwait(false));
+				resourceKeys.Add(pageKey);
+			}
+
+			return new OperatorAssetBundle(
+				package.CharacterId,
+				package.CharacterName,
+				appearance.Skin,
+				appearance.Model,
+				appearance.ResourceVersion,
+				atlasPath,
+				skeletonPath,
+				texturePaths,
+				resourceKeys
+			);
+		}
+
+		private static PrtsAssetRequest CreateFallbackFileRequest(
+			string key,
+			OperatorFallbackAppearance appearance,
+			OperatorFallbackFile file
+		) {
+			string relativePath = ValidateRelativeAssetPath(file.RelativePath)
+				.Replace('/', Path.DirectorySeparatorChar);
+			return new PrtsAssetRequest(
+				key,
+				new Uri(file.SourceUrl),
+				relativePath,
+				appearance.ResourceVersion,
+				file.Length,
+				file.Sha256
+			);
+		}
+
+		internal static string AssetKeyForFile(
+			string characterId,
+			OperatorFallbackAppearance appearance,
+			OperatorFallbackFile file
+		) {
+			if (appearance == null) throw new ArgumentNullException("appearance");
+			if (file == null) throw new ArgumentNullException("file");
+			string type = string.Equals(file.Role, "page", StringComparison.OrdinalIgnoreCase)
+				? "page:" + file.PageName
+				: file.Role;
+			return AssetKey(characterId, appearance.Skin, appearance.Model, type);
 		}
 
 		internal static IList<string> ParseAtlasPages(string atlasText) {
