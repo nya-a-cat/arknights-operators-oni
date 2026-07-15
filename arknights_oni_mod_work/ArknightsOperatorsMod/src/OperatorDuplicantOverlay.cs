@@ -247,6 +247,9 @@ namespace ArknightsOperatorsMod {
 		private string CurrentOniAnimation() {
 			if (sourceAnim == null) return null;
 			KAnim.Anim current = sourceAnim.GetCurrentAnim();
+			if (current == null || string.IsNullOrEmpty(current.name)) {
+				current = sourceAnim.GetAnim(sourceAnim.currentAnim);
+			}
 			string source = current != null && !string.IsNullOrEmpty(current.name)
 				? current.name
 				: sourceAnim.currentAnim.ToString();

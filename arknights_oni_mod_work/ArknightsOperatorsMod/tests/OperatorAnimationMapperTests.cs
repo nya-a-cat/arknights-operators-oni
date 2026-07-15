@@ -32,6 +32,7 @@ internal static class OperatorAnimationMapperTests {
 		Expect("crop tending classified as work", "Work", OperatorAnimationMapper.Classify("crop_tending_pst").ToString());
 		Expect("falling classified as move", "Move", OperatorAnimationMapper.Classify("falling_pre").ToString());
 		Expect("landing classified as move", "Move", OperatorAnimationMapper.Classify("landing_loop").ToString());
+		Expect("hex animation hash stays idle", "Idle", OperatorAnimationMapper.Classify("0xEDEAD903").ToString());
 		Expect("moving state overrides idle anim", "Move", OperatorAnimationMapper.ResolveSourceAnimation("idle_loop", true));
 		Expect("moving state works without source anim", "Move", OperatorAnimationMapper.ResolveSourceAnimation(null, true));
 		Expect("stationary state keeps source anim", "idle_loop", OperatorAnimationMapper.ResolveSourceAnimation("idle_loop", false));

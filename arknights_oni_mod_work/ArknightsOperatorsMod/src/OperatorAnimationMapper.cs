@@ -41,6 +41,9 @@ namespace ArknightsOperatorsMod {
 
 		public static OperatorActionKind Classify(string oniAnimation) {
 			string value = (oniAnimation ?? string.Empty).ToLowerInvariant();
+			// KAnim uses hexadecimal HashedString values while an animation is
+			// transitioning or unavailable. They are identifiers, not action names.
+			if (value.StartsWith("0x", StringComparison.Ordinal)) return OperatorActionKind.Idle;
 			if (ContainsAny(value, "die", "dead", "death")) return OperatorActionKind.Death;
 			if (ContainsAny(value, "stress", "panic", "sick", "stun", "vomit")) return OperatorActionKind.Stress;
 			if (ContainsAny(value, "sleep", "bed")) return OperatorActionKind.Sleep;
