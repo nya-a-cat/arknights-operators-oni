@@ -1,38 +1,49 @@
-# Arknights for Oxygen Not Included
+<div align="center">
 
-`arknights-oni` 是面向《缺氧》的明日方舟内容 Mod。当前 `Arknights Operators（明日方舟干员）` 模块把可选择的干员 Spine 外观覆盖到复制人上，并根据复制人的移动、工作、休息、睡眠、压力和死亡状态切换动画；后续仓库范围会扩展到语音、基建家具、敌人和特效。
+# arknights-oni
 
-当前版本：`0.3.1`。已在 ONI build 722606、四个复制人的隔离测试存档中完成实机冒烟验证。
+**Bring Arknights operators into Oxygen Not Included.**
 
-## 已实现
+Operators are available today. Voice, base furniture, enemies, and visual effects are on the roadmap. Arknights is the first reference implementation for a future reusable ONI content framework.
 
-- 游戏内按中文名称或 `char_id` 搜索 449 个干员。
-- 联动选择干员、皮肤和模型。
-- 模组设置页与存档内 `Ctrl+F8` 共用同一设置界面，保存后实时切换当前复制人。
-- 两种资源策略：按需缓存（512 MiB LRU）与永久保留已下载资源。
-- 同一资源的并发请求合并；单个调用者取消不会中止其他复制人的共享下载。
-- 下载采用 HTTPS 来源限制、临时文件、SHA-256 索引校验和 64 MiB 单文件上限。
-- Spine 3.8 Region/Mesh、clipping、多 atlas page 和常用 blend mode 的实时 C# 渲染。
-- 原始复制人外观、可选内置 Spine 和旧帧路径的分级失败保护。
+[English](./README.md) · [简体中文](./README.zh-CN.md) · [Roadmap](#current-progress--roadmap) · [Installation](#installation)
 
-当前外观选择是全局设置，会应用到所有复制人。
+[![Version](https://img.shields.io/badge/version-0.3.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/tree/v0.3.1)
+![ONI build](https://img.shields.io/badge/ONI_build-722606-ea6b35)
+![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
+[![Repository](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
 
-## Roadmap
+</div>
 
-以下功能均为后续计划，当前 `0.3.1` 尚未实现：
+> [!IMPORTANT]
+> Version `0.3.1` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
+>
+> The selected appearance is currently global and applies to every duplicant.
 
-- **干员体验**：干员语音与多语种选择、每个复制人独立外观/声音、保存前预览与试听、收藏/预设、打印舱随机分配。
-- **基建与家具**：把明日方舟家具套装、基建装饰和背景资产接入 ONI；第一阶段只做视觉/装饰替换，保持建筑数值和模拟逻辑不变。
-- **敌人与生物**：先为现有小动物或敌对实体提供外观替换和动作映射，保留碰撞、寻路和战斗规则；新增实体放在完成兼容性验证之后。
-- **技能与环境特效**：接入攻击、工作、受伤、死亡和环境特效，使用对象池、事件触发和帧预算控制多人场景开销。
-- **内容包框架**：按 `operator`、`voice`、`furniture`、`enemy`、`effect` 分类资源，继续支持按需缓存、永久缓存、完整性校验和逐包启用。
-- **基础质量**：正式中英 i18n、缓存管理器、下载状态、诊断导出、配置迁移、目录更新和其他外观 Mod 的冲突策略。
+The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 722606.
 
-详细优先级、验收标准和资源权利门槛见[代码审查与完整路线图](docs/code_review_and_roadmap_20260715.md)。
+## What makes it special?
 
-## 安装
+- Search a catalog of 449 operators by Chinese name or `char_id` inside the game.
+- Select an operator, skin, and model through linked controls.
+- Open the same selection interface from Mod Options or in a loaded save with `Ctrl+F8`, then apply the new appearance live.
+- Render Spine 3.8 Region/Mesh attachments, clipping, multiple atlas pages, and common blend modes directly in C#.
+- Map ONI movement, work, rest, sleep, stress, and death states to available operator animations.
+- Choose between a bounded 512 MiB on-demand LRU cache and permanent retention of downloaded resources.
+- Merge concurrent requests for the same resource while allowing each duplicant to cancel its own wait independently.
+- Verify downloads with HTTPS source restrictions, temporary files, a SHA-256 index, and a 64 MiB per-file limit.
+- Fall back through the original duplicant visual, an optional bundled Spine asset, and the legacy frame path when an appearance cannot be loaded.
 
-前提：Windows 版《缺氧》已通过 Steam 安装；WSL 中可运行 Mono `mcs`。仓库不会自动下载编译器、浏览器或大型依赖。
+## Installation
+
+### Prerequisites
+
+- Oxygen Not Included for Windows installed through Steam.
+- WSL with Mono `mcs` available.
+
+The repository does not install a compiler, browser, or large dependency automatically.
+
+### Build and install
 
 ```bash
 cd arknights_oni_mod_work/AmiyaDuplicantMod
@@ -40,26 +51,64 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 ./install_local.sh
 ```
 
-默认安装到：
+The default local Mod directory is:
 
 ```text
-C:\Users\element\Documents\Klei\OxygenNotIncluded\mods\Local\AmiyaDuplicantMod
+C:\Users\<you>\Documents\Klei\OxygenNotIncluded\mods\Local\AmiyaDuplicantMod
 ```
 
-可用 `ONI_GAME_ROOT` 指定游戏目录，用 `ONI_LOCAL_MOD_DIR` 指定安装目录。进入 Steam 启动的游戏后，在“模组”中启用 `Arknights Operators（明日方舟干员）` 并按提示重启。直接双击游戏 EXE 在部分 Steam 环境会触发 Klei 的 Mod Safe Mode，因此测试和日常使用均建议从 Steam 启动。
+Set `ONI_GAME_ROOT` to override the game directory or `ONI_LOCAL_MOD_DIR` to override the installation target.
 
-仓库不分发明日方舟图片、Spine 骨骼、atlas 或 PRTS 网页构建产物。首次选择外观时，Mod 从 PRTS 资源域按需获取当前外观需要的小文件。单文件硬上限为 64 MiB，不会下载 100 MiB 以上的单项依赖。
+> [!TIP]
+> Start the game through Steam, enable **Arknights Operators（明日方舟干员）** in the Mods menu, and restart when prompted. Launching the game executable directly can trigger Klei's Mod Safe Mode in some Steam environments.
 
-## 资源策略
+The repository does not distribute Arknights artwork, Spine skeletons, atlases, or PRTS web bundles. When an appearance is selected for the first time, the Mod fetches only the small files required for that appearance from the PRTS resource domain. A single file is capped at 64 MiB, and the workflow does not introduce an individual dependency larger than 100 MB.
 
-| 设置 | 行为 | 适用场景 |
+## Resource strategies
+
+| Mode | Behaviour | Best for |
 | --- | --- | --- |
-| 按需缓存（推荐） | 只获取当前选择资源；缓存超过 512 MiB 时清理最久未使用且未被引用的文件 | 控制磁盘占用 |
-| 永久保留已下载资源 | 只获取当前选择资源；成功缓存后不执行容量清理 | 希望已访问外观长期离线可用 |
+| On-demand cache (recommended) | Fetch only the selected appearance. When the cache exceeds 512 MiB, evict the least recently used files that are not referenced. | Keeping disk usage bounded |
+| Keep downloaded resources | Fetch only the selected appearance and retain successfully cached files without capacity eviction. | Reusing visited appearances offline |
 
-两种设置都不会预下载全量干员资源。
+Neither mode pre-downloads the full operator catalog.
 
-## 验证
+## Current progress & Roadmap
+
+### Operators
+
+- [x] Searchable 449-operator catalog
+- [x] Linked operator, skin, and model selection
+- [x] Live switching from Options and `Ctrl+F8`
+- [x] Runtime animation mapping and ground alignment
+- [ ] Per-duplicant appearance and voice settings
+- [ ] Operator voice with language selection, preview, cooldown, and priority
+- [ ] Appearance preview, favourites, presets, and Printing Pod assignment pools
+
+### Arknights content
+
+- [ ] Base furniture, room themes, and animated decorations
+- [ ] Enemy and creature appearance packages
+- [ ] Skill, combat, work, and environmental effects
+- [ ] Typed content packages: `operator`, `voice`, `furniture`, `enemy`, and `effect`
+
+### Platform quality
+
+- [ ] English and Simplified Chinese in-game localization
+- [ ] Cache manager, download status, and diagnostics export
+- [ ] Versioned configuration migration and catalog updates
+- [ ] Compatibility controls for other appearance Mods
+
+### Long-term framework direction
+
+- [ ] Re-evaluate `arknights-oni` as a reusable ONI content framework after the Arknights content pipeline matures
+- [ ] Extract stable content lifecycle, cache, selection, event mapping, and package contracts into a reusable core
+- [ ] Keep Arknights as the first reference content pack and compatibility suite
+- [ ] Evaluate content packs inspired by other games, with **BanG Dream!** as an example candidate
+
+See the [complete code review and roadmap](./docs/code_review_and_roadmap_20260715.md) for priorities, acceptance criteria, performance limits, and resource boundaries.
+
+## Development
 
 ```bash
 cd arknights_oni_mod_work/AmiyaDuplicantMod
@@ -70,18 +119,18 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 ./tests/run_operator_asset_resolver_integration.sh
 ```
 
-最后一项会访问 PRTS 的真实小型测试资源。其余测试只使用本地代码和 fixture。
+The final integration test downloads a real, small PRTS fixture. The remaining tests use only local code and fixtures.
 
-## 目录
+## Repository layout
 
-- `arknights_oni_mod_work/AmiyaDuplicantMod/src`：Mod、设置、缓存、资源解析、渲染与动画映射。
-- `arknights_oni_mod_work/AmiyaDuplicantMod/tests`：纯逻辑测试和真实小资源集成测试。
-- `arknights_oni_mod_work/AmiyaDuplicantMod/lib`：PLib 以及固定版本的 Spine C# runtime 源码和来源说明。
-- `docs`：PRTS 资产审计、架构验收规范和代码审查路线图。
-- `PROGRESS.md`：按任务追加的开发与验证记录。
+- `arknights_oni_mod_work/AmiyaDuplicantMod/src`: Mod entry points, settings, cache, resource resolution, rendering, and animation mapping.
+- `arknights_oni_mod_work/AmiyaDuplicantMod/tests`: Logic tests and the real small-resource integration test.
+- `arknights_oni_mod_work/AmiyaDuplicantMod/lib`: PLib plus the pinned Spine C# runtime sources and provenance notes.
+- `docs`: PRTS asset research, architecture and acceptance notes, and the detailed roadmap.
+- `PROGRESS.md`: Append-only implementation and verification log.
 
-## 权利与第三方组件
+## Project boundaries & third-party components
 
-本仓库与 Klei、Hypergryph/鹰角网络及 PRTS Wiki 没有隶属或背书关系。游戏及角色相关权利归各自权利人所有。公开仓库只包含原创 Mod 源码、测试、开发文档、轻量目录元数据和单独许可的第三方代码；美术和动画资源由用户运行时按需获取。
+This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public repository contains original Mod source code, tests, development notes, lightweight catalog metadata, and separately licensed third-party code. Artwork and animation assets are retrieved by the user at runtime.
 
-原创代码当前没有授予额外的开源许可证。PLib、Spine runtime 和目录元数据适用各自的许可与来源说明，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 和 [DATA_NOTICE.md](DATA_NOTICE.md)。使用或分发前请确认自己满足 Spine Runtimes/Spine Editor 的许可条件。
+No additional open-source license is currently granted for the original code. PLib, the Spine runtime, and catalog metadata remain subject to their respective licenses and source notices. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) and [DATA_NOTICE.md](./DATA_NOTICE.md).
