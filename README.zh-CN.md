@@ -6,7 +6,7 @@
 
 当前版本已经支持干员外观，后续计划加入语音、基建家具、敌人和特效。明日方舟会作为未来通用 ONI 内容框架的第一套参考实现。
 
-[English](./README.md) · [简体中文](./README.zh-CN.md) · [使用说明：中文 / English / 日本語](./docs/usage_multilingual.md) · [路线图](#当前进度与-roadmap) · [安装](#安装)
+[English](./README.md) · [简体中文](./README.zh-CN.md) · [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857) · [使用说明：中文 / English / 日本語](./docs/usage_multilingual.md) · [路线图](#当前进度与-roadmap) · [安装](#安装)
 
 [![版本](https://img.shields.io/badge/version-0.3.2--alpha.2-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.2)
 ![ONI 实测](https://img.shields.io/badge/ONI_tested-740622-ea6b35)

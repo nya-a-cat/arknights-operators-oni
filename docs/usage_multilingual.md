@@ -2,6 +2,8 @@
 
 QQ Alpha testing group / Alpha 测试交流群 / Alpha テスト交流グループ：`785437890`
 
+Steam Workshop / Steam 创意工坊 / Steam ワークショップ：[Arknights Operators / 明日方舟干员 [Alpha]](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857)
+
 ## 中文
 
 ### 安装与启用

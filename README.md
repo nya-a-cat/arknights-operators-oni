@@ -6,7 +6,7 @@
 
 Operators are available today. Voice, base furniture, enemies, and visual effects are on the roadmap. Arknights is the first reference implementation for a future reusable ONI content framework.
 
-[English](./README.md) · [简体中文](./README.zh-CN.md) · [Usage: EN / 中文 / 日本語](./docs/usage_multilingual.md) · [Roadmap](#current-progress--roadmap) · [Installation](#installation)
+[English](./README.md) · [简体中文](./README.zh-CN.md) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857) · [Usage: EN / 中文 / 日本語](./docs/usage_multilingual.md) · [Roadmap](#current-progress--roadmap) · [Installation](#installation)
 
 [![Version](https://img.shields.io/badge/version-0.3.2--alpha.2-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.2)
 ![ONI tested](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
