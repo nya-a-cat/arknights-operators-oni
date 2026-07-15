@@ -1,5 +1,5 @@
 param(
-	[string]$ScreenshotRoot = "C:\Program Files (x86)\Steam\userdata\1018078487\760\remote\457140\screenshots",
+	[string]$ScreenshotRoot = "",
 	[string]$OutputPath = ""
 )
 
@@ -10,6 +10,9 @@ function ConvertFrom-CodePoints([int[]]$Codes) {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ScreenshotRoot)) {
+	$ScreenshotRoot = Join-Path $repoRoot "docs\images\source\alpha-v0.3.2"
+}
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 	$OutputPath = Join-Path $repoRoot "docs\images\arknights-oni-alpha-v0.3.2-workshop.png"
 }
@@ -21,10 +24,10 @@ $texasCn = ConvertFrom-CodePoints @(0x5FB7, 0x514B, 0x8428, 0x65AF)
 $arknightsCn = ConvertFrom-CodePoints @(0x660E, 0x65E5, 0x65B9, 0x821F, 0x5E72, 0x5458)
 $oniCn = ConvertFrom-CodePoints @(0x7F3A, 0x6C27)
 $cards = @(
-	@{ File = "20260715125124_1.jpg"; Label = "EXUSIAI / $exusiaiCn" },
-	@{ File = "20260715140728_1.jpg"; Label = "SURTR / $surtrCn" },
-	@{ File = "20260715140920_1.jpg"; Label = "AMIYA / $amiyaCn" },
-	@{ File = "20260715141342_1.jpg"; Label = "TEXAS / $texasCn" }
+	@{ File = "20260715125124_1.jpg"; Label = "EXUSIAI / $exusiaiCn"; Sha256 = "43E9B53AA7ED6E1DAF475D9BF8115048B5DB968066EDF069FF8F6CDACFBF5A75" },
+	@{ File = "20260715140728_1.jpg"; Label = "SURTR / $surtrCn"; Sha256 = "5352DC7177AD7BD5E38E84A77A883CBAE90BB90ED3371A37B3F9656DD16AB49E" },
+	@{ File = "20260715140920_1.jpg"; Label = "AMIYA / $amiyaCn"; Sha256 = "4A34B72AE980A0241AB5886A8F981AFC2C79B37375B5810464CDA8780EA1DAC5" },
+	@{ File = "20260715141342_1.jpg"; Label = "TEXAS / $texasCn"; Sha256 = "DBC6E76E10B8FE7F28525D6E6EEFCFCD43EAEB04A2B45BB0D5872C92CE2E3E25" }
 )
 
 $outputDirectory = Split-Path -Parent $OutputPath
@@ -46,17 +49,19 @@ $border = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 6
 $accentPen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(255, 240, 129, 46)), 6
 $titleFont = New-Object System.Drawing.Font "Microsoft YaHei UI", 42, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
 $subtitleFont = New-Object System.Drawing.Font "Microsoft YaHei UI", 28, ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
+$featureFont = New-Object System.Drawing.Font "Microsoft YaHei UI", 22, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
 $cardFont = New-Object System.Drawing.Font "Microsoft YaHei UI", 25, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
-$badgeFont = New-Object System.Drawing.Font "Microsoft YaHei UI", 25, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
+$badgeFont = New-Object System.Drawing.Font "Microsoft YaHei UI", 22, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
 
 try {
 	$graphics.FillRectangle($background, 0, 0, 1920, 1080)
 	$graphics.FillRectangle($header, 0, 0, 1920, 205)
 	$graphics.FillRectangle($accent, 0, 0, 18, 205)
 	$graphics.DrawString("ARKNIGHTS OPERATORS X OXYGEN NOT INCLUDED", $titleFont, $white, 58, 38)
-	$graphics.DrawString("$arknightsCn X $oniCn   /   449 OPERATORS   /   LIVE SWITCHING   /   CN / EN / JP", $subtitleFont, $muted, 62, 112)
-	$graphics.FillRectangle($accent, 1585, 54, 270, 78)
-	$graphics.DrawString("ALPHA v0.3.2", $badgeFont, $background, 1610, 76)
+	$graphics.DrawString("$arknightsCn X $oniCn   /   449 OPERATORS   /   LIVE SWITCHING", $subtitleFont, $muted, 62, 108)
+	$graphics.DrawString("AUTO-LOCALIZED OPTIONS: CN / EN   /   OPERATOR SEARCH: CN / EN / JP", $featureFont, $accent, 62, 151)
+	$graphics.FillRectangle($accent, 1545, 54, 310, 78)
+	$graphics.DrawString("v0.3.2-alpha.1", $badgeFont, $background, 1580, 78)
 
 	for ($index = 0; $index -lt $cards.Count; $index++) {
 		$card = $cards[$index]
@@ -64,12 +69,19 @@ try {
 		if (-not (Test-Path -LiteralPath $sourcePath)) {
 			throw "Missing source screenshot: $sourcePath"
 		}
+		$actualHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+		if ($actualHash -ne $card.Sha256) {
+			throw "Source screenshot hash mismatch: $sourcePath"
+		}
 
 		$image = [System.Drawing.Image]::FromFile($sourcePath)
 		try {
+			if ($image.Width -ne 1920 -or $image.Height -ne 1080) {
+				throw "Unexpected source screenshot dimensions: $sourcePath"
+			}
 			$x = 55 + ($index * 457)
-			$destination = New-Object System.Drawing.Rectangle $x, 245, 430, 750
-			$source = New-Object System.Drawing.Rectangle 660, 250, 480, 800
+			$destination = New-Object System.Drawing.Rectangle $x, 245, 430, 680
+			$source = New-Object System.Drawing.Rectangle 790, 640, 240, 380
 			$graphics.DrawImage($image, $destination, $source, [System.Drawing.GraphicsUnit]::Pixel)
 			$graphics.DrawRectangle($border, $destination)
 			$graphics.DrawLine($accentPen, $x, 245, ($x + 430), 245)
@@ -95,6 +107,7 @@ try {
 	$accentPen.Dispose()
 	$titleFont.Dispose()
 	$subtitleFont.Dispose()
+	$featureFont.Dispose()
 	$cardFont.Dispose()
 	$badgeFont.Dispose()
 }

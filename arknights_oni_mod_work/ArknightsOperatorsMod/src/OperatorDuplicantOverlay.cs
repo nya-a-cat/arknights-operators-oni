@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,8 +10,8 @@ using Newtonsoft.Json.Linq;
 using Spine;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
-	public sealed class AmiyaDuplicantOverlay : MonoBehaviour {
+namespace ArknightsOperatorsMod {
+	public sealed class OperatorDuplicantOverlay : MonoBehaviour {
 		private const float TargetVisualHeight = 1.65f;
 		private const float GroundOffsetY = 0f;
 		private const float MinimumWorldScale = 0.0015f;
@@ -20,6 +21,7 @@ namespace AmiyaDuplicantMod {
 		private const string PreferredFrameModel = "正面";
 
 		private KBatchedAnimController sourceAnim;
+		private Navigator navigator;
 		private GameObject visualRoot;
 		private MeshFilter meshFilter;
 		private MeshRenderer meshRenderer;
@@ -65,15 +67,24 @@ namespace AmiyaDuplicantMod {
 		private CancellationTokenSource loadCancellation;
 		private IDisposable resourceLease;
 		private int loadGeneration;
+		private readonly List<KBatchedAnimController> sourceAnimations = new List<KBatchedAnimController>();
+		private readonly Dictionary<KBatchedAnimController, Color32> sourceTintBeforeSuppression =
+			new Dictionary<KBatchedAnimController, Color32>();
+		private readonly Dictionary<KBatchedAnimController, bool> sourceVisibilityBeforeSuppression =
+			new Dictionary<KBatchedAnimController, bool>();
+		private static readonly MethodInfo SuspendUpdatesMethod = typeof(KAnimControllerBase).GetMethod(
+			"SuspendUpdates", BindingFlags.Instance | BindingFlags.NonPublic);
 
 		private void Start() {
 			try {
 				sourceAnim = GetComponent<KBatchedAnimController>();
+				navigator = GetComponent<Navigator>();
+				RefreshSourceAnimations();
 				CreateVisualRoot();
 				ModConfigStore.AppearanceChanged += OnAppearanceChanged;
 				BeginAppearanceLoad(ModConfigStore.Current, true);
 			} catch (Exception ex) {
-				Debug.LogError("[AmiyaDuplicantMod] Failed to attach overlay: " + ex);
+				Debug.LogError("[ArknightsOperatorsMod] Failed to attach overlay: " + ex);
 				enabled = false;
 			}
 		}
@@ -90,7 +101,7 @@ namespace AmiyaDuplicantMod {
 				resourceLease.Dispose();
 				resourceLease = null;
 			}
-			if (sourceAnim != null && sourceHidden) sourceAnim.SetVisiblity(true);
+			RestoreSourceVisuals();
 			if (visualRoot != null) Destroy(visualRoot);
 			if (textureLoader != null) textureLoader.Dispose();
 			foreach (FrameSheetCache cached in frameSheetCache.Values) {
@@ -101,6 +112,7 @@ namespace AmiyaDuplicantMod {
 		}
 
 		private void LateUpdate() {
+			EnsureSourceVisualHidden();
 			if (frameFallbackMode) {
 				UpdateFrameFallback();
 				return;
@@ -185,9 +197,9 @@ namespace AmiyaDuplicantMod {
 						PlayBestAnimation(CurrentOniAnimation());
 						HideSourceVisual();
 						remoteLoaded = true;
-						Debug.Log("[AmiyaDuplicantMod] Loaded operator " + bundle.CharacterId + " " +
+						Debug.Log("[ArknightsOperatorsMod] Loaded operator " + bundle.CharacterId + " " +
 							bundle.Skin + "/" + bundle.Model + " version=" + bundle.ResourceVersion);
-						Debug.Log("[AmiyaDuplicantMod] Operator overlay attached to " + gameObject.name);
+						Debug.Log("[ArknightsOperatorsMod] Operator overlay attached to " + gameObject.name);
 					}
 				} catch (Exception error) {
 					remoteError = error;
@@ -201,39 +213,45 @@ namespace AmiyaDuplicantMod {
 			if (cancellationToken.IsCancellationRequested || generation != loadGeneration)
 				yield break;
 			if (!allowFallback) {
-				Debug.LogWarning("[AmiyaDuplicantMod] Appearance switch failed; keeping current operator: " +
+				Debug.LogWarning("[ArknightsOperatorsMod] Appearance switch failed; keeping current operator: " +
 					remoteError);
 				yield break;
 			}
 
 			bool loaded = false;
 			if (!loaded) {
-				Debug.LogWarning("[AmiyaDuplicantMod] PRTS asset load failed; trying bundled fallback: " + remoteError);
+				Debug.LogWarning("[ArknightsOperatorsMod] PRTS asset load failed; trying bundled fallback: " + remoteError);
 				try {
 					LoadSkeleton(ModAssets.AmiyaAtlasPath, ModAssets.AmiyaSkeletonPath);
 					PlayBestAnimation(CurrentOniAnimation());
 					loaded = true;
 				} catch (Exception spineError) {
-					Debug.LogWarning("[AmiyaDuplicantMod] Bundled skeleton failed; trying frame fallback: " + spineError);
+					Debug.LogWarning("[ArknightsOperatorsMod] Bundled skeleton failed; trying frame fallback: " + spineError);
 					try {
 						LoadFrameFallback();
 						loaded = true;
 					} catch (Exception frameError) {
-						Debug.LogError("[AmiyaDuplicantMod] All operator visuals failed; keeping vanilla duplicant: " + frameError);
+						Debug.LogError("[ArknightsOperatorsMod] All operator visuals failed; keeping vanilla duplicant: " + frameError);
 					}
 				}
 			}
 
 			if (loaded) {
 				HideSourceVisual();
-				Debug.Log("[AmiyaDuplicantMod] Operator overlay attached to " + gameObject.name);
+				Debug.Log("[ArknightsOperatorsMod] Operator overlay attached to " + gameObject.name);
 			} else {
 				enabled = false;
 			}
 		}
 
 		private string CurrentOniAnimation() {
-			return sourceAnim == null ? null : sourceAnim.currentAnim.ToString();
+			if (sourceAnim == null) return null;
+			KAnim.Anim current = sourceAnim.GetCurrentAnim();
+			string source = current != null && !string.IsNullOrEmpty(current.name)
+				? current.name
+				: sourceAnim.currentAnim.ToString();
+			return OperatorAnimationMapper.ResolveSourceAnimation(
+				source, IsSourceMoving());
 		}
 
 		private void LoadSkeleton(string atlasPath, string skeletonPath) {
@@ -336,7 +354,7 @@ namespace AmiyaDuplicantMod {
 				!currentFrameAnimation.EndsWith("_End", StringComparison.OrdinalIgnoreCase);
 			BuildFrameFallbackQuad();
 			ApplyFrameFallbackUv(0);
-			Debug.Log("[AmiyaDuplicantMod] Loaded frame fallback: " + sheetPath + " animation=" + currentFrameAnimation + " frames=" + frameCount + " fps=" + frameFps);
+			Debug.Log("[ArknightsOperatorsMod] Loaded frame fallback: " + sheetPath + " animation=" + currentFrameAnimation + " frames=" + frameCount + " fps=" + frameFps);
 		}
 
 		private FrameSheetCache GetFrameSheet(string sheetPath) {
@@ -365,7 +383,7 @@ namespace AmiyaDuplicantMod {
 		private void LoadFrameLibrary() {
 			frameLibrary.Clear();
 			if (!File.Exists(ModAssets.AmiyaFrameLibraryIndexPath)) {
-				Debug.Log("[AmiyaDuplicantMod] Frame library index not found; using root fallback only.");
+				Debug.Log("[ArknightsOperatorsMod] Frame library index not found; using root fallback only.");
 				return;
 			}
 
@@ -385,7 +403,7 @@ namespace AmiyaDuplicantMod {
 				if (File.Exists(manifestPath)) frameLibrary.Add(new FrameAnimationDef(skin, model, animation, manifestPath));
 			}
 
-			Debug.Log("[AmiyaDuplicantMod] Loaded frame library entries: " + frameLibrary.Count);
+			Debug.Log("[ArknightsOperatorsMod] Loaded frame library entries: " + frameLibrary.Count);
 		}
 
 		private void BuildFrameFallbackQuad() {
@@ -435,12 +453,12 @@ namespace AmiyaDuplicantMod {
 			scale.x = sourceAnim.FlipX ? -1f : 1f;
 			visualRoot.transform.localScale = scale;
 
-			FrameAnimationDef next = PickFrameAnimation(sourceAnim.currentAnim.ToString());
+			FrameAnimationDef next = PickFrameAnimation(CurrentOniAnimation());
 			if (next == null || next.Animation == currentFrameAnimation) return;
 			try {
 				LoadFrameFallback(next.ManifestPath);
 			} catch (Exception ex) {
-				Debug.LogWarning("[AmiyaDuplicantMod] Failed to switch frame animation to " + next.Animation + ": " + ex);
+				Debug.LogWarning("[ArknightsOperatorsMod] Failed to switch frame animation to " + next.Animation + ": " + ex);
 			}
 		}
 
@@ -514,9 +532,64 @@ namespace AmiyaDuplicantMod {
 		}
 
 		private void HideSourceVisual() {
-			if (sourceAnim == null) return;
-			sourceAnim.SetVisiblity(false);
 			sourceHidden = true;
+			SuppressSourceVisuals();
+		}
+
+		private void EnsureSourceVisualHidden() {
+			if (sourceHidden) SuppressSourceVisuals();
+		}
+
+		private void RefreshSourceAnimations() {
+			sourceAnimations.Clear();
+			KBatchedAnimController[] controllers = GetComponentsInChildren<KBatchedAnimController>(true);
+			for (int i = 0; i < controllers.Length; i++) {
+				KBatchedAnimController controller = controllers[i];
+				if (controller != null && !sourceAnimations.Contains(controller)) sourceAnimations.Add(controller);
+			}
+		}
+
+		private void SuppressSourceVisuals() {
+			RefreshSourceAnimations();
+			for (int i = 0; i < sourceAnimations.Count; i++) {
+				KBatchedAnimController controller = sourceAnimations[i];
+				if (controller == null) continue;
+				if (!sourceVisibilityBeforeSuppression.ContainsKey(controller)) {
+					sourceVisibilityBeforeSuppression[controller] = controller.IsVisible();
+				}
+				controller.SetVisiblity(false);
+				if (SuspendUpdatesMethod != null) SuspendUpdatesMethod.Invoke(controller, new object[] { false });
+				Color32 tint = controller.TintColour;
+				Color32 originalTint;
+				if (!sourceTintBeforeSuppression.TryGetValue(controller, out originalTint) || tint.a != 0) {
+					sourceTintBeforeSuppression[controller] = tint;
+				}
+				if (tint.a == 0) continue;
+				tint.a = 0;
+				controller.TintColour = tint;
+			}
+		}
+
+		private void RestoreSourceVisuals() {
+			sourceHidden = false;
+			foreach (KeyValuePair<KBatchedAnimController, Color32> entry in sourceTintBeforeSuppression) {
+				if (entry.Key != null) entry.Key.TintColour = entry.Value;
+			}
+			foreach (KeyValuePair<KBatchedAnimController, bool> entry in sourceVisibilityBeforeSuppression) {
+				if (entry.Key != null) entry.Key.SetVisiblity(entry.Value);
+			}
+			sourceTintBeforeSuppression.Clear();
+			sourceVisibilityBeforeSuppression.Clear();
+			sourceAnimations.Clear();
+		}
+
+		private bool IsSourceMoving() {
+			if (navigator != null && navigator.IsMoving()) return true;
+			for (int i = 0; i < sourceAnimations.Count; i++) {
+				KBatchedAnimController controller = sourceAnimations[i];
+				if (controller != null && controller.IsMoving) return true;
+			}
+			return false;
 		}
 
 		private void SyncFacingAndAnimation() {
@@ -528,7 +601,7 @@ namespace AmiyaDuplicantMod {
 				position.x = (flipX ? calibratedCenterX : -calibratedCenterX) * calibratedScale;
 				visualRoot.transform.localPosition = position;
 			}
-			string oniAnim = sourceAnim.currentAnim.ToString();
+			string oniAnim = CurrentOniAnimation();
 			PlayBestAnimation(oniAnim);
 		}
 
@@ -557,6 +630,8 @@ namespace AmiyaDuplicantMod {
 			}
 			currentSpinePlan = next;
 			currentSpineAnimation = next.Target;
+			Debug.Log("[ArknightsOperatorsMod] Animation source=" + (oniAnim ?? "<none>") +
+				" action=" + next.Action + " target=" + next.Target);
 		}
 
 		private IList<string> GetAvailableSpineAnimations() {
@@ -698,7 +773,7 @@ namespace AmiyaDuplicantMod {
 			visualRoot.transform.localPosition = new Vector3(-centerX * scale,
 				GroundOffsetY - rawMinY * scale, -0.35f);
 			scaleInitialized = true;
-			Debug.Log("[AmiyaDuplicantMod] Auto scale=" + scale + " rawBounds=" +
+			Debug.Log("[ArknightsOperatorsMod] Auto scale=" + scale + " rawBounds=" +
 				(rawMaxX - rawMinX) + "x" + (rawMaxY - rawMinY));
 		}
 
@@ -713,7 +788,7 @@ namespace AmiyaDuplicantMod {
 			RebuildMesh();
 			state.ClearTracks();
 			skeleton.SetToSetupPose();
-			Debug.Log("[AmiyaDuplicantMod] Scale reference=" + (reference ?? "setup"));
+			Debug.Log("[ArknightsOperatorsMod] Scale reference=" + (reference ?? "setup"));
 		}
 
 		private string FindReferenceAnimation() {
@@ -750,7 +825,7 @@ namespace AmiyaDuplicantMod {
 			for (int i = 0; i < skeletonData.Animations.Count; i++) {
 				names.Add(skeletonData.Animations.Items[i].Name);
 			}
-			Debug.Log("[AmiyaDuplicantMod] Loaded Spine " + skeletonData.Version + " animations: " + string.Join(", ", names.ToArray()));
+			Debug.Log("[ArknightsOperatorsMod] Loaded Spine " + skeletonData.Version + " animations: " + string.Join(", ", names.ToArray()));
 		}
 
 		private sealed class LoadedSpineVisual : IDisposable {

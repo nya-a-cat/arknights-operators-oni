@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class PrtsResourceService : IDisposable {
 		public const long OnDemandCacheLimitBytes = 512L * 1024L * 1024L;
 
@@ -172,7 +172,7 @@ namespace AmiyaDuplicantMod {
 					File.Delete(partPath);
 				if (hasOfflineCopy) {
 					Debug.LogWarning(
-						"[AmiyaDuplicantMod] PRTS refresh failed; using the cached copy: " + error.Message
+						"[ArknightsOperatorsMod] PRTS refresh failed; using the cached copy: " + error.Message
 					);
 					return cachedPath;
 				}

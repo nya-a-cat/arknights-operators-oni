@@ -2,7 +2,7 @@ using System;
 using PeterHan.PLib.Options;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class AppearanceOptionsHotkey : MonoBehaviour {
 		private bool dialogOpen;
 
@@ -15,7 +15,7 @@ namespace AmiyaDuplicantMod {
 				POptions.ShowDialog(typeof(ModConfig), OnDialogClosed);
 			} catch (Exception error) {
 				dialogOpen = false;
-				Debug.LogError("[AmiyaDuplicantMod] Failed to open appearance options: " + error);
+				Debug.LogError("[ArknightsOperatorsMod] Failed to open appearance options: " + error);
 			}
 		}
 

@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	internal static class OperatorFallbackPackageInstaller {
 		public const long MaximumPackageBytes = PrtsAssetClient.MaximumDownloadBytes;
 		private static readonly SemaphoreSlim InstallGate = new SemaphoreSlim(1, 1);

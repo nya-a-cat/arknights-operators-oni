@@ -6,19 +6,19 @@ site_probe/
 arknights_oni_mod_work/spine-runtimes-3.5/
 
 # Game art and PRTS-rendered development assets are intentionally excluded
-arknights_oni_mod_work/AmiyaDuplicantMod/assets/frames/
-arknights_oni_mod_work/AmiyaDuplicantMod/assets/spine/
-arknights_oni_mod_work/AmiyaDuplicantMod/preview/
+arknights_oni_mod_work/ArknightsOperatorsMod/assets/frames/
+arknights_oni_mod_work/ArknightsOperatorsMod/assets/spine/
+arknights_oni_mod_work/ArknightsOperatorsMod/preview/
 
 # Asset-export and local browser validation tools depend on the excluded files
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/AmiyaSpinePreview.cs
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/build_prts_spine_index.py
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/export_all_frames_headless.py
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/export_frames_headless.py
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/import_exported_frames.py
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/run_prts_animation_validation.ps1
-arknights_oni_mod_work/AmiyaDuplicantMod/tools/validate_prts_animations.playwright.js
-arknights_oni_mod_work/AmiyaDuplicantMod/build_preview.sh
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/AmiyaSpinePreview.cs
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/build_prts_spine_index.py
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/export_all_frames_headless.py
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/export_frames_headless.py
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/import_exported_frames.py
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/run_prts_animation_validation.ps1
+arknights_oni_mod_work/ArknightsOperatorsMod/tools/validate_prts_animations.playwright.js
+arknights_oni_mod_work/ArknightsOperatorsMod/build_preview.sh
 
 # Build outputs and generated source lists
 *.dll
@@ -26,7 +26,7 @@ arknights_oni_mod_work/AmiyaDuplicantMod/build_preview.sh
 *.pdb
 *.mdb
 *.rsp
-!arknights_oni_mod_work/AmiyaDuplicantMod/lib/PLib.dll
+!arknights_oni_mod_work/ArknightsOperatorsMod/lib/PLib.dll
 
 # Test/cache output
 **/.test-cache/

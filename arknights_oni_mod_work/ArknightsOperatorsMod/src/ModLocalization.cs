@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	internal static class ModLocalization {
 		public static bool UseChinese {
 			get {

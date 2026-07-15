@@ -1,7 +1,7 @@
 using System.IO;
 using PeterHan.PLib.Options;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public static class ModAssets {
 		public static string ModPath;
 		private static string sharedRoot;

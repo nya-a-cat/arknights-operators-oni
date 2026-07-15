@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AmiyaDuplicantMod;
+using ArknightsOperatorsMod;
 using Newtonsoft.Json;
 
 namespace UnityEngine {
@@ -17,7 +17,7 @@ namespace UnityEngine {
 	}
 }
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public enum ResourcePersistencePolicy { OnDemandCache, Permanent }
 
 	public sealed class ModConfig {

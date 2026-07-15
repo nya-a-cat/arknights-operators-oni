@@ -163,7 +163,7 @@
 
 本节记录第一阶段开始前的源码基线；后续实现是否修复这些缺口需要以新测试和 diff 为准。
 
-- `AmiyaDuplicantOverlay.cs` 当前约 547 行，只处理 Region 和 Mesh attachment。
+- `OperatorDuplicantOverlay.cs` 当前约 547 行，只处理 Region 和 Mesh attachment。
 - 当前实现使用单一 `FirstMaterial`，会跳过 clipping，并忽略槽位 blend、双色着色和多图集页。
 - 固定比例缩放与现有大尺寸 spritesheet 回退会放大内存占用，难以扩展到完整目录。
 
@@ -273,7 +273,7 @@
 | 4 个角色、6 个实时动画/特征用例和 1 个缺失动画负例 | 已验证 | `preview/prts_animation_validation_report.json`，Playwright 7/7 通过 |
 | 干员多语言名称、重定向别名与 `char_id` 回填 | 已验证 | 449 条 PRTS 轻量目录；`Surtr`、`阿米娅`、`テキサス` 由游戏内设置与单元测试共同验证 |
 | 130 个阿米娅动画 sheet、8 fps、1000×1000 帧 | 已验证的旧原型 | `assets/frames/amiya/library/index.json`；该方案不继续扩展 |
-| 当前 overlay 的 Region/Mesh、单材质实现 | 已验证的旧源码基线 | `src/AmiyaDuplicantOverlay.cs` |
+| 当前 overlay 的 Region/Mesh、单材质实现 | 已验证的旧源码基线 | `src/OperatorDuplicantOverlay.cs` |
 | Spine runtime 许可文本 | 已验证的仓库文件 | `SPINE-RUNTIME-LICENSE.txt` |
 | 449/954/2815 和 atlas/样本统计 | 已验证的 2026-07-14 至 2026-07-15 审计输出 | 本文保存的批量探针结果；站点变化后需要重新普查 |
 | 两种资源策略、缓存索引和混合渲染 | 架构决定 | `phase1_architecture_and_acceptance.md` |

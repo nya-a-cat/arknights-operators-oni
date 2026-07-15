@@ -58,8 +58,8 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
           SNAPSHOT_ID: ${{ inputs.snapshot_id }}
         run: |
-          python3 arknights_oni_mod_work/AmiyaDuplicantMod/tools/build_operator_fallback_release.py build \
-            --catalog arknights_oni_mod_work/AmiyaDuplicantMod/assets/catalog/operator_appearances_20260604.json \
+          python3 arknights_oni_mod_work/ArknightsOperatorsMod/tools/build_operator_fallback_release.py build \
+            --catalog arknights_oni_mod_work/ArknightsOperatorsMod/assets/catalog/operator_appearances_20260604.json \
             --output "dist/shard-${{ matrix.shard }}" \
             --release-tag "$RELEASE_TAG" \
             --snapshot-id "$SNAPSHOT_ID" \
@@ -94,7 +94,7 @@ jobs:
         env:
           EXPECTED_OPERATOR_COUNT: ${{ inputs.expected_operator_count }}
         run: |
-          python3 arknights_oni_mod_work/AmiyaDuplicantMod/tools/build_operator_fallback_release.py merge \
+          python3 arknights_oni_mod_work/ArknightsOperatorsMod/tools/build_operator_fallback_release.py merge \
             --partials dist/partials \
             --output dist/operator-asset-fallback-manifest-v1.json \
             --expected-count "$EXPECTED_OPERATOR_COUNT"

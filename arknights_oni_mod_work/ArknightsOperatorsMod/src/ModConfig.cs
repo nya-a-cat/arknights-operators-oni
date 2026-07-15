@@ -7,7 +7,7 @@ using Newtonsoft.Json.Converters;
 using PeterHan.PLib.Options;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	[JsonConverter(typeof(StringEnumConverter))]
 	public enum ResourcePersistencePolicy {
 		[EnumMember(Value = "按需缓存（512 MiB）")]
@@ -57,7 +57,7 @@ namespace AmiyaDuplicantMod {
 			OperatorAppearanceOptionsEntry.ApplyPendingSelection(this);
 			Normalize();
 			ModConfigStore.SaveAndApply(this);
-			Debug.Log("[AmiyaDuplicantMod] Saved appearance " + DefaultCharacterId + " " +
+			Debug.Log("[ArknightsOperatorsMod] Saved appearance " + DefaultCharacterId + " " +
 				PreferredSkin + "/" + PreferredModel);
 		}
 	}
@@ -183,7 +183,7 @@ namespace AmiyaDuplicantMod {
 					loaded.Normalize();
 				return loaded;
 			} catch (Exception error) {
-				Debug.LogWarning("[AmiyaDuplicantMod] Failed to read config: " + error.Message);
+				Debug.LogWarning("[ArknightsOperatorsMod] Failed to read config: " + error.Message);
 				return null;
 			}
 		}

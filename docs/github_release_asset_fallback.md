@@ -82,7 +82,7 @@ Mod 拒绝未知 schema、不完整条目、路径逃逸、非许可域、长度
 
 - 8 个 shard 全部成功，合并清单正好包含 449 个唯一 `character_id`。
 - Release asset 数量为 450：449 个干员 ZIP 和 1 个最终清单。
-- 工作流没有 512 MiB 阻断；达到 100 MiB 的报告逐项人工确认。
+- 每个干员 ZIP 通过 512 MiB 异常响应/压缩炸弹技术护栏；达到 100 MiB 的报告逐项人工确认，单纯超过本机偏好不会阻断云端工作流。
 - 随机抽取至少 3 个干员，并覆盖默认/皮肤、多页 atlas；下载包后重新计算 package 与文件 SHA-256。
 - 本地 `run_operator_fallback_tests.sh`、完整构建和现有资源集成测试通过。
 - 发布草稿前确认仓库已经启用 immutable releases；发布后用 `gh release verify` / `gh release verify-asset` 验证完整性。

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using AmiyaDuplicantMod;
+using ArknightsOperatorsMod;
 
 internal static class OperatorAnimationMapperTests {
 	private static int failures;
@@ -32,6 +32,10 @@ internal static class OperatorAnimationMapperTests {
 		Expect("crop tending classified as work", "Work", OperatorAnimationMapper.Classify("crop_tending_pst").ToString());
 		Expect("falling classified as move", "Move", OperatorAnimationMapper.Classify("falling_pre").ToString());
 		Expect("landing classified as move", "Move", OperatorAnimationMapper.Classify("landing_loop").ToString());
+		Expect("moving state overrides idle anim", "Move", OperatorAnimationMapper.ResolveSourceAnimation("idle_loop", true));
+		Expect("moving state works without source anim", "Move", OperatorAnimationMapper.ResolveSourceAnimation(null, true));
+		Expect("stationary state keeps source anim", "idle_loop", OperatorAnimationMapper.ResolveSourceAnimation("idle_loop", false));
+		Expect("stationary null stays null", null, OperatorAnimationMapper.ResolveSourceAnimation(null, false));
 
 		List<string> combat = new List<string> {
 			"Attack_Begin", "Attack", "Die", "Idle", "Skill_Loop_2", "Start", "Stun"

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class OperatorAssetBundle {
 		public string CharacterId { get; private set; }
 		public string CharacterName { get; private set; }
@@ -74,7 +74,7 @@ namespace AmiyaDuplicantMod {
 					throw new InvalidDataException("Fallback snapshot has no entry for " + characterId);
 
 				Debug.LogWarning(
-					"[AmiyaDuplicantMod] PRTS resolution failed; using fallback snapshot " +
+					"[ArknightsOperatorsMod] PRTS resolution failed; using fallback snapshot " +
 					manifest.SnapshotId + ": " + primaryError.Message
 				);
 				try {
@@ -87,7 +87,7 @@ namespace AmiyaDuplicantMod {
 					throw;
 				} catch (Exception directError) {
 					Debug.LogWarning(
-						"[AmiyaDuplicantMod] PRTS snapshot files failed; installing the Release package: " +
+						"[ArknightsOperatorsMod] PRTS snapshot files failed; installing the Release package: " +
 						directError.Message
 					);
 					await OperatorFallbackPackageInstaller.InstallAsync(

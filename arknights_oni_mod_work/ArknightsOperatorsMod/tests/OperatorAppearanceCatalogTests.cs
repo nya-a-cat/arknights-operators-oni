@@ -1,5 +1,5 @@
 using System;
-using AmiyaDuplicantMod;
+using ArknightsOperatorsMod;
 
 internal static class OperatorAppearanceCatalogTests {
 	private static int assertions;

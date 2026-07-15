@@ -3,7 +3,7 @@ using PeterHan.PLib.Core;
 using PeterHan.PLib.Options;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class Mod : KMod.UserMod2 {
 		public override void OnLoad(Harmony harmony) {
 			base.OnLoad(harmony);
@@ -13,9 +13,9 @@ namespace AmiyaDuplicantMod {
 			ModConfigStore.Initialize();
 			PrtsResourceService.Initialize();
 			long cacheBytes = PrtsResourceService.Instance.RunCacheMaintenance();
-			Debug.Log("[AmiyaDuplicantMod] Loaded from " + ModAssets.ModPath);
-			Debug.Log("[AmiyaDuplicantMod] Shared assets: " + ModAssets.SharedAssetsRoot);
-			Debug.Log("[AmiyaDuplicantMod] Resource policy=" + ModConfigStore.DownloadPolicy +
+			Debug.Log("[ArknightsOperatorsMod] Loaded from " + ModAssets.ModPath);
+			Debug.Log("[ArknightsOperatorsMod] Shared assets: " + ModAssets.SharedAssetsRoot);
+			Debug.Log("[ArknightsOperatorsMod] Resource policy=" + ModConfigStore.DownloadPolicy +
 				" indexedBytes=" + cacheBytes);
 		}
 	}
@@ -24,8 +24,8 @@ namespace AmiyaDuplicantMod {
 	public static class MinionIdentityOnSpawnPatch {
 		public static void Postfix(MinionIdentity __instance) {
 			if (__instance == null || __instance.gameObject == null) return;
-			if (__instance.gameObject.GetComponent<AmiyaDuplicantOverlay>() != null) return;
-			__instance.gameObject.AddComponent<AmiyaDuplicantOverlay>();
+			if (__instance.gameObject.GetComponent<OperatorDuplicantOverlay>() != null) return;
+			__instance.gameObject.AddComponent<OperatorDuplicantOverlay>();
 		}
 	}
 

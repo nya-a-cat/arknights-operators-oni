@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using AmiyaDuplicantMod;
+using ArknightsOperatorsMod;
 
 namespace UnityEngine {
 	public static class Debug {

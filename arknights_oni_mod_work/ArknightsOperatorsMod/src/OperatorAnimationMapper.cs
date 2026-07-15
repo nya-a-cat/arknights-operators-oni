@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	internal enum OperatorActionKind {
 		Idle,
 		Move,
@@ -50,6 +50,10 @@ namespace AmiyaDuplicantMod {
 				"craft", "clean", "tending", "mop", "sweep")) return OperatorActionKind.Work;
 			if (ContainsAny(value, "move", "walk", "run", "climb", "ladder", "swim", "jump", "fall", "landing")) return OperatorActionKind.Move;
 			return OperatorActionKind.Idle;
+		}
+
+		public static string ResolveSourceAnimation(string oniAnimation, bool isMoving) {
+			return isMoving ? "Move" : oniAnimation;
 		}
 
 		public static string Pick(string oniAnimation, IList<string> availableAnimations) {

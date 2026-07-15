@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	internal static class AtomicFile {
 		public static void Replace(string partPath, string destinationPath) {
 			if (File.Exists(destinationPath))

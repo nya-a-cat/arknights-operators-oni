@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class OperatorAppearanceCatalog {
 		[JsonProperty("schema_version")]
 		public int SchemaVersion { get; private set; }

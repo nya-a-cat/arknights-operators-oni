@@ -3,17 +3,17 @@
 ## PLib
 
 - Component: PLib
-- Included file: `arknights_oni_mod_work/AmiyaDuplicantMod/lib/PLib.dll`
-- Source and version record: `arknights_oni_mod_work/AmiyaDuplicantMod/PLIB-SOURCE.txt`
-- License: MIT, copied in `arknights_oni_mod_work/AmiyaDuplicantMod/PLIB-LICENSE.txt`
+- Included file: `arknights_oni_mod_work/ArknightsOperatorsMod/lib/PLib.dll`
+- Source and version record: `arknights_oni_mod_work/ArknightsOperatorsMod/PLIB-SOURCE.txt`
+- License: MIT, copied in `arknights_oni_mod_work/ArknightsOperatorsMod/PLIB-LICENSE.txt`
 
 ## Spine C# Runtime 3.8
 
 - Component: Spine C# Runtime 3.8
 - Upstream: `https://github.com/EsotericSoftware/spine-runtimes`
-- Pinned commit and local compatibility note: `arknights_oni_mod_work/AmiyaDuplicantMod/lib/SPINE-RUNTIME-SOURCE.txt`
-- License: `arknights_oni_mod_work/AmiyaDuplicantMod/SPINE-RUNTIME-LICENSE.txt`
-- Upstream README snapshot: `arknights_oni_mod_work/AmiyaDuplicantMod/lib/SPINE-RUNTIME-README.md`
+- Pinned commit and local compatibility note: `arknights_oni_mod_work/ArknightsOperatorsMod/lib/SPINE-RUNTIME-SOURCE.txt`
+- License: `arknights_oni_mod_work/ArknightsOperatorsMod/SPINE-RUNTIME-LICENSE.txt`
+- Upstream README snapshot: `arknights_oni_mod_work/ArknightsOperatorsMod/lib/SPINE-RUNTIME-README.md`
 
 The Spine runtime is distributed under Esoteric Software's Spine Runtimes license. That license contains conditions tied to the Spine Editor license. Repository visibility does not replace those conditions; each user and redistributor is responsible for satisfying them.
 

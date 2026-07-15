@@ -4,7 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using AmiyaDuplicantMod;
+using ArknightsOperatorsMod;
 using Spine;
 
 namespace UnityEngine {
@@ -13,7 +13,7 @@ namespace UnityEngine {
 	}
 }
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public enum ResourcePersistencePolicy { OnDemandCache, Permanent }
 
 	public sealed class ModConfig {

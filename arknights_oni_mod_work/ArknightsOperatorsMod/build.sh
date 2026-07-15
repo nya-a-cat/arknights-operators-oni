@@ -10,7 +10,7 @@ else
   GAME_ROOT="/mnt/c/Program Files (x86)/Steam/steamapps/downloading/457140"
 fi
 MANAGED="$GAME_ROOT/OxygenNotIncluded_Data/Managed"
-OUT="$ROOT/AmiyaDuplicantMod.dll"
+OUT="$ROOT/ArknightsOperatorsMod.dll"
 RSP="$ROOT/build.sources.rsp"
 MCS_BIN="${MCS_BIN:-$(command -v mcs || true)}"
 if [[ -z "$MCS_BIN" && -x "/home/linuxbrew/.linuxbrew/bin/mcs" ]]; then

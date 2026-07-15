@@ -21,6 +21,10 @@
 > 当前 `0.3.2-alpha.1` 实现的是 **Arknights Operators（明日方舟干员）** 模块：把可选择的干员 Spine 外观覆盖到复制人上，并将移动、工作、休息、睡眠、压力和死亡状态映射到对应动画。
 >
 > 当前外观选择是全局设置，会应用到所有复制人。
+>
+> 这是 Alpha 测试版本，部分游戏内集成场景仍在专项验证中。
+>
+> Steam 创意工坊标题为 **Arknights Operators / 明日方舟干员 [Alpha]**；游戏内“模组”菜单显示为 **Arknights Operators（明日方舟干员）**。
 
 当前版本已经在 ONI build 740622、四个复制人的隔离测试存档中完成实机冒烟验证，并分别用 `Surtr`、`阿米娅`、`テキサス` 完成英文、中文、日文搜索与热切换。
 
@@ -50,7 +54,7 @@
 ### 构建并安装
 
 ```bash
-cd arknights_oni_mod_work/AmiyaDuplicantMod
+cd arknights_oni_mod_work/ArknightsOperatorsMod
 ./build.sh
 ./install_local.sh
 ```
@@ -58,10 +62,12 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 默认本地 Mod 目录：
 
 ```text
-C:\Users\<你的用户名>\Documents\Klei\OxygenNotIncluded\mods\Local\AmiyaDuplicantMod
+C:\Users\<你的用户名>\Documents\Klei\OxygenNotIncluded\mods\Local\ArknightsOperatorsMod
 ```
 
 使用 `ONI_GAME_ROOT` 指定游戏目录，使用 `ONI_LOCAL_MOD_DIR` 指定安装目标。
+
+早期本地原型使用 `AmiyaDuplicantMod` 目录。默认安装脚本会在新目标尚未存在时迁移旧本地目录及其配置/缓存。隐藏的旧 `staticID` 继续作为兼容键，使现有存档能够识别改名后的 Mod。
 
 > [!TIP]
 > 从 Steam 启动游戏，在“模组”中启用 **Arknights Operators（明日方舟干员）**，并按提示重启。部分 Steam 环境中直接启动游戏 EXE 会触发 Klei 的 Mod Safe Mode。
@@ -125,7 +131,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 ## 开发
 
 ```bash
-cd arknights_oni_mod_work/AmiyaDuplicantMod
+cd arknights_oni_mod_work/ArknightsOperatorsMod
 ./build.sh
 ./tests/run_operator_animation_mapper_tests.sh
 ./tests/run_operator_appearance_catalog_tests.sh
@@ -140,9 +146,9 @@ python3 ./tests/test_fallback_release_builder.py
 
 ## 仓库结构
 
-- `arknights_oni_mod_work/AmiyaDuplicantMod/src`：Mod 入口、设置、缓存、资源解析、渲染和动画映射。
-- `arknights_oni_mod_work/AmiyaDuplicantMod/tests`：逻辑测试和真实小资源集成测试。
-- `arknights_oni_mod_work/AmiyaDuplicantMod/lib`：PLib、固定版本 Spine C# runtime 源码及来源说明。
+- `arknights_oni_mod_work/ArknightsOperatorsMod/src`：Mod 入口、设置、缓存、资源解析、渲染和动画映射。
+- `arknights_oni_mod_work/ArknightsOperatorsMod/tests`：逻辑测试和真实小资源集成测试。
+- `arknights_oni_mod_work/ArknightsOperatorsMod/lib`：PLib、固定版本 Spine C# runtime 源码及来源说明。
 - `docs`：PRTS 资产研究、架构验收记录和详细路线图。
 - `PROGRESS.md`：只追加的实现与验证日志。
 

@@ -21,6 +21,10 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 > Version `0.3.2-alpha.1` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
 >
 > The selected appearance is currently global and applies to every duplicant.
+>
+> This is an Alpha release. Several game-integration scenarios remain under validation.
+>
+> Steam Workshop title: **Arknights Operators / 明日方舟干员 [Alpha]**. In-game Mods menu title: **Arknights Operators（明日方舟干员）**.
 
 The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 740622. Live switching was verified with `Surtr`, `阿米娅`, and `テキサス` searches.
 
@@ -50,7 +54,7 @@ The repository does not install a compiler, browser, or large dependency automat
 ### Build and install
 
 ```bash
-cd arknights_oni_mod_work/AmiyaDuplicantMod
+cd arknights_oni_mod_work/ArknightsOperatorsMod
 ./build.sh
 ./install_local.sh
 ```
@@ -58,10 +62,12 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 The default local Mod directory is:
 
 ```text
-C:\Users\<you>\Documents\Klei\OxygenNotIncluded\mods\Local\AmiyaDuplicantMod
+C:\Users\<you>\Documents\Klei\OxygenNotIncluded\mods\Local\ArknightsOperatorsMod
 ```
 
 Set `ONI_GAME_ROOT` to override the game directory or `ONI_LOCAL_MOD_DIR` to override the installation target.
+
+Earlier local prototypes used the `AmiyaDuplicantMod` directory. The default installer migrates that local directory plus its configuration/cache when the new target does not exist. The hidden legacy `staticID` remains as a compatibility key so existing saves continue to recognize the renamed Mod.
 
 > [!TIP]
 > Start the game through Steam, enable **Arknights Operators（明日方舟干员）** in the Mods menu, and restart when prompted. Launching the game executable directly can trigger Klei's Mod Safe Mode in some Steam environments.
@@ -125,7 +131,7 @@ See the [complete code review and roadmap](./docs/code_review_and_roadmap_202607
 ## Development
 
 ```bash
-cd arknights_oni_mod_work/AmiyaDuplicantMod
+cd arknights_oni_mod_work/ArknightsOperatorsMod
 ./build.sh
 ./tests/run_operator_animation_mapper_tests.sh
 ./tests/run_operator_appearance_catalog_tests.sh
@@ -140,9 +146,9 @@ The final integration test downloads a real, small PRTS fixture. The fallback te
 
 ## Repository layout
 
-- `arknights_oni_mod_work/AmiyaDuplicantMod/src`: Mod entry points, settings, cache, resource resolution, rendering, and animation mapping.
-- `arknights_oni_mod_work/AmiyaDuplicantMod/tests`: Logic tests and the real small-resource integration test.
-- `arknights_oni_mod_work/AmiyaDuplicantMod/lib`: PLib plus the pinned Spine C# runtime sources and provenance notes.
+- `arknights_oni_mod_work/ArknightsOperatorsMod/src`: Mod entry points, settings, cache, resource resolution, rendering, and animation mapping.
+- `arknights_oni_mod_work/ArknightsOperatorsMod/tests`: Logic tests and the real small-resource integration test.
+- `arknights_oni_mod_work/ArknightsOperatorsMod/lib`: PLib plus the pinned Spine C# runtime sources and provenance notes.
 - `docs`: PRTS asset research, architecture and acceptance notes, and the detailed roadmap.
 - `PROGRESS.md`: Append-only implementation and verification log.
 

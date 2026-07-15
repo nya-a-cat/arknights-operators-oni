@@ -5,7 +5,7 @@ using PeterHan.PLib.Options;
 using PeterHan.PLib.UI;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class OperatorAppearanceOptionsEntry : OptionsEntry {
 		private const int MaximumOperatorMatches = 60;
 		private static bool hasPendingSelection;
@@ -49,7 +49,7 @@ namespace AmiyaDuplicantMod {
 			try {
 				catalog = OperatorAppearanceCatalog.Load(ModAssets.OperatorCatalogPath);
 			} catch (Exception error) {
-				Debug.LogWarning("[AmiyaDuplicantMod] Operator catalog load failed: " + error.Message);
+				Debug.LogWarning("[ArknightsOperatorsMod] Operator catalog load failed: " + error.Message);
 				catalog = OperatorAppearanceCatalog.FromJson(
 					"{\"schema_version\":1,\"operators\":[{\"id\":\"char_002_amiya\"," +
 					"\"name\":\"阿米娅\",\"skins\":[{\"name\":\"默认\",\"models\":[\"基建\"]}]}]}"

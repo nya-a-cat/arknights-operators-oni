@@ -5,7 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class ResourceIndexEntry {
 		[JsonProperty]
 		public string Key { get; set; }
@@ -167,7 +167,7 @@ namespace AmiyaDuplicantMod {
 						? JsonConvert.DeserializeObject<ResourceCacheIndex>(File.ReadAllText(indexPath))
 						: null;
 				} catch (Exception error) {
-					Debug.LogWarning("[AmiyaDuplicantMod] Failed to read cache index: " + error.Message);
+					Debug.LogWarning("[ArknightsOperatorsMod] Failed to read cache index: " + error.Message);
 					index = null;
 				}
 				if (index == null || index.SchemaVersion != ResourceCacheIndex.CurrentSchemaVersion)

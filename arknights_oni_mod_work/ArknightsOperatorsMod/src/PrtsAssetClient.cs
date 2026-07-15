@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AmiyaDuplicantMod {
+namespace ArknightsOperatorsMod {
 	public sealed class PrtsAssetSource {
 		public Uri SourceUri { get; private set; }
 		public long? ExpectedLength { get; private set; }

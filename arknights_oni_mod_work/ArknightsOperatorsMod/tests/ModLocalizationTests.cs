@@ -1,5 +1,5 @@
 using System;
-using AmiyaDuplicantMod;
+using ArknightsOperatorsMod;
 
 public static class Localization {
 	public static string GetCurrentLanguageCode() {
