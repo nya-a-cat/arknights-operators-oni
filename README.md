@@ -8,23 +8,26 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 
 [English](./README.md) · [简体中文](./README.zh-CN.md) · [Roadmap](#current-progress--roadmap) · [Installation](#installation)
 
-[![Version](https://img.shields.io/badge/version-0.3.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/tree/v0.3.1)
-![ONI build](https://img.shields.io/badge/ONI_build-722606-ea6b35)
+[![Version](https://img.shields.io/badge/version-0.3.2--alpha.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.1)
+![ONI tested](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
 ![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
 [![Repository](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
 
 </div>
 
+![Arknights Operators Alpha gameplay montage](./docs/images/arknights-oni-alpha-v0.3.2-workshop.png)
+
 > [!IMPORTANT]
-> Version `0.3.1` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
+> Version `0.3.2-alpha.1` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
 >
 > The selected appearance is currently global and applies to every duplicant.
 
-The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 722606.
+The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 740622. Live switching was verified with `Surtr`, `阿米娅`, and `テキサス` searches.
 
 ## What makes it special?
 
-- Search a catalog of 449 operators by Chinese name or `char_id` inside the game.
+- Search a catalog of 449 operators by Chinese, English, or Japanese name, PRTS redirect alias, or `char_id` inside the game.
+- Use automatically selected Chinese or English option labels; operator display names prefer Chinese, Japanese, or English according to the current game language and available PRTS metadata.
 - Select an operator, skin, and model through linked controls.
 - Open the same selection interface from Mod Options or in a loaded save with `Ctrl+F8`, then apply the new appearance live.
 - Render Spine 3.8 Region/Mesh attachments, clipping, multiple atlas pages, and common blend modes directly in C#.
@@ -77,7 +80,7 @@ Neither mode pre-downloads the full operator catalog.
 
 ### Operators
 
-- [x] Searchable 449-operator catalog
+- [x] Searchable 449-operator catalog with Chinese, English, Japanese, redirect-alias, and `char_id` lookup
 - [x] Linked operator, skin, and model selection
 - [x] Live switching from Options and `Ctrl+F8`
 - [x] Runtime animation mapping and ground alignment
@@ -94,7 +97,9 @@ Neither mode pre-downloads the full operator catalog.
 
 ### Platform quality
 
-- [ ] English and Simplified Chinese in-game localization
+- [x] Automatic Chinese/English localization for the operator options interface
+- [x] Chinese/English/Japanese operator-name search from PRTS encyclopedia metadata
+- [ ] Move remaining runtime errors and diagnostics into ONI `STRINGS` resources and add more interface locales
 - [ ] Cache manager, download status, and diagnostics export
 - [ ] Versioned configuration migration and catalog updates
 - [ ] Compatibility controls for other appearance Mods
@@ -115,6 +120,7 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 ./build.sh
 ./tests/run_operator_animation_mapper_tests.sh
 ./tests/run_operator_appearance_catalog_tests.sh
+./tests/run_mod_localization_tests.sh
 ./tests/run_resource_index_tests.sh
 ./tests/run_operator_asset_resolver_integration.sh
 ```
@@ -131,6 +137,6 @@ The final integration test downloads a real, small PRTS fixture. The remaining t
 
 ## Project boundaries & third-party components
 
-This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public repository contains original Mod source code, tests, development notes, lightweight catalog metadata, and separately licensed third-party code. Artwork and animation assets are retrieved by the user at runtime.
+This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public repository contains original Mod source code, tests, development notes, lightweight catalog metadata, separately licensed third-party code, and a promotional montage made from real gameplay screenshots. Runtime artwork and animation assets are retrieved by the user on demand.
 
 No additional open-source license is currently granted for the original code. PLib, the Spine runtime, and catalog metadata remain subject to their respective licenses and source notices. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) and [DATA_NOTICE.md](./DATA_NOTICE.md).

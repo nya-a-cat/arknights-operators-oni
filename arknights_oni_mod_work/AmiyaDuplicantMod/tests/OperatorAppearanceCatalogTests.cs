@@ -16,11 +16,22 @@ internal static class OperatorAppearanceCatalogTests {
 
 		OperatorAppearanceDefinition amiya = catalog.FindExact("阿米娅");
 		Require(amiya != null && amiya.Id == "char_002_amiya", "Chinese name lookup failed");
+		Require(amiya.EnglishName == "Amiya", "English display name mismatch");
+		Require(catalog.FindExact("Amiya") == null,
+			"duplicate English name should require dropdown choice");
+		Require(catalog.Search("Amiya", 60).Count >= 2, "English variant search failed");
 		OperatorAppearanceDefinition exusiai = catalog.FindExact("能天使");
 		Require(exusiai != null && exusiai.Id == "char_103_angel", "Exusiai lookup failed");
+		Require(exusiai.EnglishName == "Exusiai", "Exusiai English name mismatch");
+		Require(catalog.FindExact("Exusiai") == exusiai, "Exusiai English lookup failed");
+		Require(catalog.FindExact("阿能") == exusiai, "PRTS alias lookup failed");
 		Require(catalog.FindExact("char_103_angel") == exusiai, "char_id lookup failed");
 		Require(catalog.FindExact("暮落") == null, "duplicate Chinese name should require dropdown choice");
 		Require(catalog.Search("阿米娅", 60).Count >= 3, "operator search result mismatch");
+		Require(catalog.Search("Texas", 60).Count >= 1, "English search result mismatch");
+		OperatorAppearanceDefinition texas = catalog.FindExact("テキサス");
+		Require(texas != null && texas.Id == "char_102_texas", "Japanese name lookup failed");
+		Require(texas.JapaneseName == "テキサス", "Japanese display name mismatch");
 
 		OperatorAppearanceSelection selected = catalog.Normalize(
 			"char_002_amiya", "播种者", "正面"

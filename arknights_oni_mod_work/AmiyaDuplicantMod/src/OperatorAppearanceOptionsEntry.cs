@@ -8,6 +8,11 @@ using UnityEngine;
 namespace AmiyaDuplicantMod {
 	public sealed class OperatorAppearanceOptionsEntry : OptionsEntry {
 		private const int MaximumOperatorMatches = 60;
+		private static bool hasPendingSelection;
+		private static ResourcePersistencePolicy pendingDownloadPolicy;
+		private static string pendingCharacterId;
+		private static string pendingSkin;
+		private static string pendingModel;
 		private static readonly Type ComboComponentType = typeof(PComboBox<Choice>).Assembly.GetType(
 			"PeterHan.PLib.UI.PComboBoxComponent"
 		);
@@ -22,6 +27,7 @@ namespace AmiyaDuplicantMod {
 		private GameObject operatorComboObject;
 		private GameObject skinComboObject;
 		private GameObject modelComboObject;
+		private ResourcePersistencePolicy downloadPolicy;
 		private string value;
 
 		public override string Name {
@@ -34,8 +40,11 @@ namespace AmiyaDuplicantMod {
 		}
 
 		public OperatorAppearanceOptionsEntry(ModConfig config) : base(null, new OptionAttribute(
-			"明日方舟干员外观",
-			"选择全局干员、皮肤和模型。保存后会更新当前存档内已有复制人。"
+			ModLocalization.Text("明日方舟干员外观", "Arknights operator appearance"),
+			ModLocalization.Text(
+				"选择全局干员、皮肤、模型和资源策略。保存后会更新当前存档内已有复制人。",
+				"Select the global operator, skin, model, and resource policy. Saving updates existing duplicants in the current colony."
+			)
 		)) {
 			try {
 				catalog = OperatorAppearanceCatalog.Load(ModAssets.OperatorCatalogPath);
@@ -48,19 +57,59 @@ namespace AmiyaDuplicantMod {
 			}
 			selection = catalog.Normalize(config.DefaultCharacterId, config.PreferredSkin,
 				config.PreferredModel);
+			downloadPolicy = config.DownloadPolicy;
 			value = BuildValue(selection);
+			StagePendingSelection();
+		}
+
+		internal static bool ApplyPendingSelection(ModConfig config) {
+			if (config == null) throw new ArgumentNullException("config");
+			if (!hasPendingSelection) return false;
+			bool changed = config.DownloadPolicy != pendingDownloadPolicy ||
+				!string.Equals(config.DefaultCharacterId, pendingCharacterId,
+					StringComparison.Ordinal) ||
+				!string.Equals(config.PreferredSkin, pendingSkin, StringComparison.Ordinal) ||
+				!string.Equals(config.PreferredModel, pendingModel, StringComparison.Ordinal);
+			config.DownloadPolicy = pendingDownloadPolicy;
+			config.DefaultCharacterId = pendingCharacterId;
+			config.PreferredSkin = pendingSkin;
+			config.PreferredModel = pendingModel;
+			return changed;
 		}
 
 		public override void CreateUIEntry(PGridPanel parent, ref int row) {
+			List<Choice> policyChoices = BuildPolicyChoices();
+			PComboBox<Choice> policies = new PComboBox<Choice>("ResourcePolicyChoice") {
+				Content = policyChoices,
+				InitialItem = FindChoice(policyChoices, downloadPolicy.ToString()),
+				MaxRowsShown = 2,
+				TextStyle = PUITuning.Fonts.UILightStyle,
+				ToolTip = ModLocalization.Text(
+					"按需缓存会限制磁盘占用；永久保留适合长期离线使用已经访问过的外观。",
+					"On-demand caching bounds disk usage; permanent retention keeps visited appearances available offline."
+				),
+				OnOptionSelected = OnPolicySelected
+			};
+			policies.SetMinWidthInCharacters(28);
+			AddRow(parent, row++, ModLocalization.Text("资源策略", "Resource policy"), policies,
+				policies.ToolTip);
+
+			parent.AddRow(new GridRowSpec());
 			PTextField search = new PTextField("OperatorSearch") {
-				Text = selection.Character.Name,
-				PlaceholderText = "输入中文名称或 char_id",
-				ToolTip = "输入完整中文名或 char_id 可直接选中；多个匹配项会显示在下方列表。",
+				Text = GetOperatorName(selection.Character),
+				PlaceholderText = ModLocalization.Text(
+					"输入中文、英文、日文、别名或 char_id",
+					"Enter a Chinese, English, or Japanese name, alias, or char_id"),
+				ToolTip = ModLocalization.Text(
+					"支持中文名、英文名、日文名、PRTS 重定向别名和 char_id；多个匹配项会显示在下方列表。",
+					"Supports Chinese, English, and Japanese names, PRTS redirect aliases, and char_id. Multiple matches appear below."
+				),
 				MaxLength = 80,
 				OnTextChanged = OnSearchChanged
 			};
 			search.SetMinWidthInCharacters(28);
-			AddRow(parent, row++, "搜索干员", search, search.ToolTip);
+			AddRow(parent, row++, ModLocalization.Text("搜索干员", "Search operator"), search,
+				search.ToolTip);
 
 			parent.AddRow(new GridRowSpec());
 			List<Choice> operatorChoices = BuildOperatorChoices(selection.Character.Name);
@@ -70,13 +119,17 @@ namespace AmiyaDuplicantMod {
 				InitialItem = selectedOperator,
 				MaxRowsShown = 8,
 				TextStyle = PUITuning.Fonts.UILightStyle,
-				ToolTip = "先搜索中文名或 char_id，再从匹配结果中选择。",
+				ToolTip = ModLocalization.Text(
+					"按中文名、英文名、日文名或别名搜索，再从匹配结果中选择。",
+					"Search by a Chinese, English, or Japanese name or alias, then choose from the matching operators."
+				),
 				OnOptionSelected = OnOperatorSelected
 			};
 			operators.SetMinWidthInCharacters(28).AddOnRealize(realized => {
 				operatorComboObject = realized;
 			});
-			AddRow(parent, row++, "干员", operators, operators.ToolTip);
+			AddRow(parent, row++, ModLocalization.Text("干员", "Operator"), operators,
+				operators.ToolTip);
 
 			parent.AddRow(new GridRowSpec());
 			List<Choice> skinChoices = BuildSkinChoices();
@@ -85,13 +138,14 @@ namespace AmiyaDuplicantMod {
 				InitialItem = FindChoice(skinChoices, selection.Skin.Name),
 				MaxRowsShown = 8,
 				TextStyle = PUITuning.Fonts.UILightStyle,
-				ToolTip = "皮肤列表随干员联动。",
+				ToolTip = ModLocalization.Text(
+					"皮肤列表随干员联动。", "The skin list follows the selected operator."),
 				OnOptionSelected = OnSkinSelected
 			};
 			skins.SetMinWidthInCharacters(28).AddOnRealize(realized => {
 				skinComboObject = realized;
 			});
-			AddRow(parent, row++, "皮肤", skins, skins.ToolTip);
+			AddRow(parent, row++, ModLocalization.Text("皮肤", "Skin"), skins, skins.ToolTip);
 
 			parent.AddRow(new GridRowSpec());
 			List<Choice> modelChoices = BuildModelChoices();
@@ -100,13 +154,17 @@ namespace AmiyaDuplicantMod {
 				InitialItem = FindChoice(modelChoices, selection.Model),
 				MaxRowsShown = 8,
 				TextStyle = PUITuning.Fonts.UILightStyle,
-				ToolTip = "模型列表随所选皮肤联动；基建模型通常最适合复制人日常动作。",
+				ToolTip = ModLocalization.Text(
+					"模型列表随所选皮肤联动；基建模型通常最适合复制人日常动作。",
+					"The model list follows the selected skin. Base models usually fit daily duplicant actions best."
+				),
 				OnOptionSelected = OnModelSelected
 			};
 			models.SetMinWidthInCharacters(28).AddOnRealize(realized => {
 				modelComboObject = realized;
 			});
-			AddRow(parent, row++, "模型", models, models.ToolTip);
+			AddRow(parent, row++, ModLocalization.Text("模型", "Model"), models,
+				models.ToolTip);
 		}
 
 		public override GameObject GetUIComponent() {
@@ -118,20 +176,31 @@ namespace AmiyaDuplicantMod {
 			if (config == null) return;
 			selection = catalog.Normalize(config.DefaultCharacterId, config.PreferredSkin,
 				config.PreferredModel);
+			downloadPolicy = config.DownloadPolicy;
 			value = BuildValue(selection);
 		}
 
 		public override bool WriteTo(object settings) {
 			ModConfig config = settings as ModConfig;
 			if (config == null || selection == null) return false;
-			bool changed = !string.Equals(config.DefaultCharacterId, selection.Character.Id,
+			bool changed = config.DownloadPolicy != downloadPolicy ||
+				!string.Equals(config.DefaultCharacterId, selection.Character.Id,
 				StringComparison.Ordinal) || !string.Equals(config.PreferredSkin, selection.Skin.Name,
 				StringComparison.Ordinal) || !string.Equals(config.PreferredModel, selection.Model,
 				StringComparison.Ordinal);
+			config.DownloadPolicy = downloadPolicy;
 			config.DefaultCharacterId = selection.Character.Id;
 			config.PreferredSkin = selection.Skin.Name;
 			config.PreferredModel = selection.Model;
 			return changed;
+		}
+
+		private void OnPolicySelected(GameObject source, Choice choice) {
+			if (choice == null) return;
+			downloadPolicy = string.Equals(choice.Value, ResourcePersistencePolicy.Permanent.ToString(),
+				StringComparison.Ordinal) ? ResourcePersistencePolicy.Permanent :
+					ResourcePersistencePolicy.OnDemandCache;
+			StagePendingSelection();
 		}
 
 		private void OnSearchChanged(GameObject source, string text) {
@@ -148,6 +217,7 @@ namespace AmiyaDuplicantMod {
 			if (choice == null) return;
 			selection = catalog.Normalize(selection.Character.Id, choice.Value, selection.Model);
 			value = BuildValue(selection);
+			StagePendingSelection();
 			RefreshSkinAndModelCombos();
 		}
 
@@ -155,12 +225,23 @@ namespace AmiyaDuplicantMod {
 			if (choice == null) return;
 			selection = catalog.Normalize(selection.Character.Id, selection.Skin.Name, choice.Value);
 			value = BuildValue(selection);
+			StagePendingSelection();
 		}
 
 		private void SelectOperator(string characterId) {
 			selection = catalog.Normalize(characterId, selection.Skin.Name, selection.Model);
 			value = BuildValue(selection);
+			StagePendingSelection();
 			RefreshSkinAndModelCombos();
+		}
+
+		private void StagePendingSelection() {
+			if (selection == null) return;
+			pendingDownloadPolicy = downloadPolicy;
+			pendingCharacterId = selection.Character.Id;
+			pendingSkin = selection.Skin.Name;
+			pendingModel = selection.Model;
+			hasPendingSelection = true;
 		}
 
 		private List<Choice> BuildOperatorChoices(string query) {
@@ -168,21 +249,52 @@ namespace AmiyaDuplicantMod {
 			List<Choice> choices = new List<Choice>(matches.Count + 1);
 			for (int i = 0; i < matches.Count; i++) {
 				OperatorAppearanceDefinition item = matches[i];
-				choices.Add(new Choice(item.Id, item.Name + "  [" + item.Id + "]", item.Id));
+				choices.Add(new Choice(item.Id, GetOperatorLabel(item), item.Id));
 			}
 			if (FindChoice(choices, selection.Character.Id) == null) {
 				choices.Insert(0, new Choice(selection.Character.Id,
-					selection.Character.Name + "  [" + selection.Character.Id + "]",
+					GetOperatorLabel(selection.Character),
 					selection.Character.Id));
 			}
 			return choices;
+		}
+
+		private static string GetOperatorName(OperatorAppearanceDefinition item) {
+			if (ModLocalization.UseJapanese && !string.IsNullOrWhiteSpace(item.JapaneseName))
+				return item.JapaneseName;
+			return !ModLocalization.UseChinese && !string.IsNullOrWhiteSpace(item.EnglishName) ?
+				item.EnglishName : item.Name;
+		}
+
+		private static string GetOperatorLabel(OperatorAppearanceDefinition item) {
+			string primary = GetOperatorName(item);
+			string secondary = ModLocalization.UseChinese ? item.EnglishName : item.Name;
+			if (!string.IsNullOrWhiteSpace(secondary) &&
+				!string.Equals(primary, secondary, StringComparison.OrdinalIgnoreCase))
+				return primary + " / " + secondary + "  [" + item.Id + "]";
+			return primary + "  [" + item.Id + "]";
+		}
+
+		private static List<Choice> BuildPolicyChoices() {
+			return new List<Choice> {
+				new Choice(ResourcePersistencePolicy.OnDemandCache.ToString(),
+					ModLocalization.Text("按需缓存（512 MiB）", "On-demand cache (512 MiB)"),
+					ModLocalization.Text("限制磁盘占用，自动清理未引用的旧资源。",
+						"Bounds disk usage and removes old unreferenced resources.")),
+				new Choice(ResourcePersistencePolicy.Permanent.ToString(),
+					ModLocalization.Text("永久保留已下载资源", "Keep downloaded resources"),
+					ModLocalization.Text("保留已经下载的资源，便于长期离线使用。",
+						"Keeps downloaded resources for long-term offline reuse."))
+			};
 		}
 
 		private List<Choice> BuildSkinChoices() {
 			List<Choice> choices = new List<Choice>(selection.Character.Skins.Count);
 			for (int i = 0; i < selection.Character.Skins.Count; i++) {
 				string name = selection.Character.Skins[i].Name;
-				choices.Add(new Choice(name, name, name));
+				string label = !ModLocalization.UseChinese && name == "默认" ?
+					"Default (默认)" : name;
+				choices.Add(new Choice(name, label, name));
 			}
 			return choices;
 		}
@@ -191,7 +303,13 @@ namespace AmiyaDuplicantMod {
 			List<Choice> choices = new List<Choice>(selection.Skin.Models.Count);
 			for (int i = 0; i < selection.Skin.Models.Count; i++) {
 				string name = selection.Skin.Models[i];
-				choices.Add(new Choice(name, name, name));
+				string label = name;
+				if (!ModLocalization.UseChinese) {
+					if (name == "基建") label = "Base (基建)";
+					else if (name == "正面") label = "Front (正面)";
+					else if (name == "背面") label = "Back (背面)";
+				}
+				choices.Add(new Choice(name, label, name));
 			}
 			return choices;
 		}

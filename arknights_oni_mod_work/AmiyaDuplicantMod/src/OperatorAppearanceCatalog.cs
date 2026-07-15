@@ -47,7 +47,7 @@ namespace AmiyaDuplicantMod {
 			OperatorAppearanceDefinition nameMatch = null;
 			for (int i = 0; i < Operators.Count; i++) {
 				OperatorAppearanceDefinition item = Operators[i];
-				if (!string.Equals(item.Name, trimmed, StringComparison.OrdinalIgnoreCase)) continue;
+				if (!item.MatchesName(trimmed, true)) continue;
 				if (nameMatch != null) return null;
 				nameMatch = item;
 			}
@@ -60,7 +60,7 @@ namespace AmiyaDuplicantMod {
 			string needle = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
 			for (int i = 0; i < Operators.Count && results.Count < safeLimit; i++) {
 				OperatorAppearanceDefinition item = Operators[i];
-				if (needle == null || item.Name.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0 ||
+				if (needle == null || item.MatchesName(needle, false) ||
 					item.Id.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0)
 					results.Add(item);
 			}
@@ -86,6 +86,15 @@ namespace AmiyaDuplicantMod {
 		[JsonProperty("name")]
 		public string Name { get; private set; }
 
+		[JsonProperty("english_name")]
+		public string EnglishName { get; private set; }
+
+		[JsonProperty("japanese_name")]
+		public string JapaneseName { get; private set; }
+
+		[JsonProperty("aliases")]
+		public List<string> Aliases { get; private set; }
+
 		[JsonProperty("skins")]
 		public List<OperatorSkinDefinition> Skins { get; private set; }
 
@@ -100,6 +109,26 @@ namespace AmiyaDuplicantMod {
 				Skins.Count == 0)
 				throw new InvalidDataException("Operator appearance entry is incomplete");
 			for (int i = 0; i < Skins.Count; i++) Skins[i].Validate(Id);
+			if (Aliases == null) Aliases = new List<string>();
+			for (int i = 0; i < Aliases.Count; i++) {
+				if (string.IsNullOrWhiteSpace(Aliases[i]))
+					throw new InvalidDataException("Operator alias is empty: " + Id);
+			}
+		}
+
+		public bool MatchesName(string query, bool exact) {
+			if (Matches(Name, query, exact) || Matches(EnglishName, query, exact) ||
+				Matches(JapaneseName, query, exact)) return true;
+			for (int i = 0; i < Aliases.Count; i++) {
+				if (Matches(Aliases[i], query, exact)) return true;
+			}
+			return false;
+		}
+
+		private static bool Matches(string candidate, string query, bool exact) {
+			if (string.IsNullOrWhiteSpace(candidate)) return false;
+			return exact ? string.Equals(candidate, query, StringComparison.OrdinalIgnoreCase) :
+				candidate.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
 		}
 
 		public OperatorSkinDefinition FindSkin(string name) {

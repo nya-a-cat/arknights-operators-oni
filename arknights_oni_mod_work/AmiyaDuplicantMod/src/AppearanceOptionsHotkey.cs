@@ -21,6 +21,10 @@ namespace AmiyaDuplicantMod {
 
 		private void OnDialogClosed(object settings) {
 			dialogOpen = false;
+			ModConfig config = settings as ModConfig;
+			if (config == null) return;
+			config.Normalize();
+			ModConfigStore.ApplySaved(config);
 		}
 	}
 }

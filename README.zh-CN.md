@@ -8,23 +8,26 @@
 
 [English](./README.md) · [简体中文](./README.zh-CN.md) · [路线图](#当前进度与-roadmap) · [安装](#安装)
 
-[![版本](https://img.shields.io/badge/version-0.3.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/tree/v0.3.1)
-![ONI build](https://img.shields.io/badge/ONI_build-722606-ea6b35)
+[![版本](https://img.shields.io/badge/version-0.3.2--alpha.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.1)
+![ONI 实测](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
 ![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
 [![仓库](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
 
 </div>
 
+![Arknights Operators Alpha 实机拼图](./docs/images/arknights-oni-alpha-v0.3.2-workshop.png)
+
 > [!IMPORTANT]
-> 当前 `0.3.1` 实现的是 **Arknights Operators（明日方舟干员）** 模块：把可选择的干员 Spine 外观覆盖到复制人上，并将移动、工作、休息、睡眠、压力和死亡状态映射到对应动画。
+> 当前 `0.3.2-alpha.1` 实现的是 **Arknights Operators（明日方舟干员）** 模块：把可选择的干员 Spine 外观覆盖到复制人上，并将移动、工作、休息、睡眠、压力和死亡状态映射到对应动画。
 >
 > 当前外观选择是全局设置，会应用到所有复制人。
 
-当前版本已经在 ONI build 722606、四个复制人的隔离测试存档中完成实机冒烟验证。
+当前版本已经在 ONI build 740622、四个复制人的隔离测试存档中完成实机冒烟验证，并分别用 `Surtr`、`阿米娅`、`テキサス` 完成英文、中文、日文搜索与热切换。
 
 ## 项目特色
 
-- 在游戏内按中文名称或 `char_id` 搜索 449 个干员。
+- 在游戏内按中文名、英文名、日文名、PRTS 重定向别名或 `char_id` 搜索 449 个干员。
+- 设置界面自动选择中文或英文，干员显示名会结合当前游戏语言和 PRTS 已提供的中文、日文、英文元数据。
 - 联动选择干员、皮肤和模型。
 - 从模组设置页或已加载存档中的 `Ctrl+F8` 打开同一选择界面，保存后实时切换外观。
 - 使用 C# 实时渲染 Spine 3.8 Region/Mesh、clipping、多 atlas page 和常用 blend mode。
@@ -77,7 +80,7 @@ C:\Users\<你的用户名>\Documents\Klei\OxygenNotIncluded\mods\Local\AmiyaDupl
 
 ### 干员
 
-- [x] 可搜索的 449 干员目录
+- [x] 支持中文、英文、日文、重定向别名和 `char_id` 的 449 干员目录
 - [x] 干员、皮肤和模型联动选择
 - [x] 从 Options 和 `Ctrl+F8` 实时切换
 - [x] 运行时动画映射与地面对齐
@@ -94,7 +97,9 @@ C:\Users\<你的用户名>\Documents\Klei\OxygenNotIncluded\mods\Local\AmiyaDupl
 
 ### 基础质量
 
-- [ ] 游戏内英文与简体中文本地化
+- [x] 干员设置界面自动使用中文或英文
+- [x] 基于 PRTS 百科元数据的中文、英文、日文干员名搜索
+- [ ] 把其余运行时错误与诊断迁移到 ONI `STRINGS`，并增加更多界面语种
 - [ ] 缓存管理器、下载状态和诊断导出
 - [ ] 版本化配置迁移与目录更新
 - [ ] 与其他外观 Mod 的兼容控制
@@ -115,6 +120,7 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 ./build.sh
 ./tests/run_operator_animation_mapper_tests.sh
 ./tests/run_operator_appearance_catalog_tests.sh
+./tests/run_mod_localization_tests.sh
 ./tests/run_resource_index_tests.sh
 ./tests/run_operator_asset_resolver_integration.sh
 ```
@@ -131,6 +137,6 @@ cd arknights_oni_mod_work/AmiyaDuplicantMod
 
 ## 项目边界与第三方组件
 
-这是一个非商业同人项目，与 Klei、鹰角网络及 PRTS Wiki 没有隶属或背书关系。游戏及角色相关权利归各自权利人所有。公开仓库包含原创 Mod 源码、测试、开发文档、轻量目录元数据和单独许可的第三方代码；美术和动画资源由用户在运行时获取。
+这是一个非商业同人项目，与 Klei、鹰角网络及 PRTS Wiki 没有隶属或背书关系。游戏及角色相关权利归各自权利人所有。公开仓库包含原创 Mod 源码、测试、开发文档、轻量目录元数据、单独许可的第三方代码，以及由真实游戏截图排版而成的宣传图；运行时美术和动画资源由用户按需获取。
 
 原创代码当前没有授予额外的开源许可证。PLib、Spine runtime 和目录元数据分别适用各自的许可与来源说明，详见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) 和 [DATA_NOTICE.md](./DATA_NOTICE.md)。

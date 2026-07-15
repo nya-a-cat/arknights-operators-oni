@@ -24,10 +24,6 @@ namespace AmiyaDuplicantMod {
 		[JsonProperty]
 		public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-		[Option(
-			"资源保存策略",
-			"按需缓存：最多保留 512 MiB，超限时清理最久未使用的资源。永久保留：保留所有已经下载的资源。"
-		)]
 		[JsonProperty]
 		public ResourcePersistencePolicy DownloadPolicy { get; set; } =
 			ResourcePersistencePolicy.OnDemandCache;
@@ -58,8 +54,11 @@ namespace AmiyaDuplicantMod {
 		}
 
 		public void OnOptionsChanged() {
+			OperatorAppearanceOptionsEntry.ApplyPendingSelection(this);
 			Normalize();
-			ModConfigStore.ApplySaved(this);
+			ModConfigStore.SaveAndApply(this);
+			Debug.Log("[AmiyaDuplicantMod] Saved appearance " + DefaultCharacterId + " " +
+				PreferredSkin + "/" + PreferredModel);
 		}
 	}
 
@@ -99,6 +98,14 @@ namespace AmiyaDuplicantMod {
 		}
 
 		public static void ApplySaved(ModConfig saved) {
+			Apply(saved, false);
+		}
+
+		public static void SaveAndApply(ModConfig saved) {
+			Apply(saved, true);
+		}
+
+		private static void Apply(ModConfig saved, bool persist) {
 			if (saved == null) throw new ArgumentNullException("saved");
 			Action<ModConfig> changed = null;
 			ModConfig snapshot = null;
@@ -107,7 +114,10 @@ namespace AmiyaDuplicantMod {
 				string previousAppearance = AppearanceKey(current);
 				current = Clone(saved);
 				current.Normalize();
-				lastWriteUtc = GetLastWriteUtcNoLock();
+				if (persist)
+					WriteNoLock(current);
+				else
+					lastWriteUtc = GetLastWriteUtcNoLock();
 				if (!string.Equals(previousAppearance, AppearanceKey(current), StringComparison.Ordinal)) {
 					changed = AppearanceChanged;
 					snapshot = Clone(current);

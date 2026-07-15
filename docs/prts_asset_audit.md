@@ -196,7 +196,7 @@
 - 动画映射、Die 非循环、Begin/Main/End 相位、`Skill_Loop_2 -> Skill_2` 与实际 `Skill_2_Idle` 归一通过 26 项纯逻辑断言；工作、清扫、照料、下落和落地词根已覆盖。
 - 缓存索引通过 8 项回归断言，覆盖 LRU、保护集合、同 key 版本路径替换和目录逃逸删除保护。
 
-游戏内可玩主路径已于 2026-07-15 验证：Mod `0.3.1` 从 Steam 正常冷启动并加载，Options 五行布局、中文搜索、皮肤/模型联动和 `Ctrl+F8` 均可用；Cycle 9 中四个复制人能显示阿米娅播种者/正面，并在约 0.57 秒内切换到能天使午夜邮差/正面。稳定参考动画校准修复了视觉高度和脚底基线，解除暂停后的移动、姿态变化和爬梯通过实机观察。C# mesh 尚未实现 Spine 双色 shader；非黑双色模型的 Chrome 按需烘焙并加载 sheet 已列为后续复杂视觉增强，不计入本轮第一阶段代码完成状态。
+游戏内可玩主路径已于 2026-07-15 验证：Alpha 候选 `0.3.2-alpha.1` 从 Steam 正常冷启动并加载，Options 五行布局、中英日名称与重定向别名搜索、皮肤/模型联动和 `Ctrl+F8` 均可用；Cycle 9 中四个复制人能在能天使、Surtr、阿米娅和 Texas 间热切换。稳定参考动画校准修复了视觉高度和脚底基线，Texas 的水平移动、姿态变化、爬梯和上下层落地通过实机观察。C# mesh 尚未实现 Spine 双色 shader；非黑双色模型的 Chrome 按需烘焙并加载 sheet 已列为后续复杂视觉增强，不计入本轮第一阶段代码完成状态。
 
 ## 7. 无 Unity 的目标架构
 
@@ -271,13 +271,13 @@
 | 阿米娅 4 皮肤、每皮肤实际模型与远端路径 | 已验证 | `assets/spine/amiya/prts_spine_index.json` |
 | PRTS Viewer 页面结构和导出能力 | 已验证 | `site_probe/amiya.html`、`site_probe/SpineViewer.Di5NOLW8.js`、`preview/prts_frame_exporter.html` |
 | 4 个角色、6 个实时动画/特征用例和 1 个缺失动画负例 | 已验证 | `preview/prts_animation_validation_report.json`，Playwright 7/7 通过 |
-| 干员中文名搜索与 `char_id` 回填 | 已验证 | PRTS 轻量目录不少于 400 条；阿米娅和能天使映射由 Playwright 断言 |
+| 干员多语言名称、重定向别名与 `char_id` 回填 | 已验证 | 449 条 PRTS 轻量目录；`Surtr`、`阿米娅`、`テキサス` 由游戏内设置与单元测试共同验证 |
 | 130 个阿米娅动画 sheet、8 fps、1000×1000 帧 | 已验证的旧原型 | `assets/frames/amiya/library/index.json`；该方案不继续扩展 |
 | 当前 overlay 的 Region/Mesh、单材质实现 | 已验证的旧源码基线 | `src/AmiyaDuplicantOverlay.cs` |
 | Spine runtime 许可文本 | 已验证的仓库文件 | `SPINE-RUNTIME-LICENSE.txt` |
 | 449/954/2815 和 atlas/样本统计 | 已验证的 2026-07-14 至 2026-07-15 审计输出 | 本文保存的批量探针结果；站点变化后需要重新普查 |
 | 两种资源策略、缓存索引和混合渲染 | 架构决定 | `phase1_architecture_and_acceptance.md` |
-| 当前 ONI 游戏内成功运行 | 已验证 | Mod `0.3.1` Steam 冷启动日志、Cycle 9 四复制人截图、阿米娅与能天使切换及移动/爬梯日志 |
+| 当前 ONI 游戏内成功运行 | 已验证 | Alpha 候选 Steam 单实例启动日志、Cycle 9 四复制人截图、中英日搜索热切换及 Texas 移动/爬梯日志 |
 | 浏览器侧代表性资源和动画诊断 | 已验证 | Playwright 报告覆盖帧前进、clipping、path、多页、双色和相位合同 |
 | ONI 内代表性动画视觉正确 | 部分验证 | 阿米娅播种者与能天使午夜邮差已通过；clipping/path/多页/非黑双色专项仍待验证 |
 

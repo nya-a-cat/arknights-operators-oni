@@ -9,12 +9,15 @@ import json
 import pathlib
 import re
 import time
+import urllib.parse
 import urllib.request
 
 
 MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_TOTAL_BYTES = 16 * 1024 * 1024
 META_URL = "https://torappu.prts.wiki/assets/char_spine/{character_id}/meta.json"
+PRTS_API_URL = "https://prts.wiki/api.php"
+ALIAS_BATCH_SIZE = 30
 
 
 def read_operators(path: pathlib.Path) -> list[dict[str, str]]:
@@ -28,8 +31,115 @@ def read_operators(path: pathlib.Path) -> list[dict[str, str]]:
     return operators
 
 
+def fetch_aliases(
+    operators: list[dict[str, str]], retries: int
+) -> tuple[dict[str, list[str]], dict[str, str], dict[str, str]]:
+    names = sorted({str(operator["name"]) for operator in operators})
+    aliases_by_name: dict[str, list[str]] = {name: [] for name in names}
+    english_by_name: dict[str, str] = {}
+    japanese_by_name: dict[str, str] = {}
+    batches = [
+        names[start : start + ALIAS_BATCH_SIZE]
+        for start in range(0, len(names), ALIAS_BATCH_SIZE)
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        for batch_aliases, batch_english, batch_japanese in executor.map(
+            lambda batch: fetch_alias_batch(batch, retries), batches
+        ):
+            for name, aliases in batch_aliases.items():
+                aliases_by_name[name].extend(aliases)
+            english_by_name.update(batch_english)
+            japanese_by_name.update(batch_japanese)
+
+    return aliases_by_name, english_by_name, japanese_by_name
+
+
+def fetch_alias_batch(
+    batch: list[str], retries: int
+) -> tuple[dict[str, list[str]], dict[str, str], dict[str, str]]:
+    result: dict[str, list[str]] = {name: [] for name in batch}
+    english_names: dict[str, str] = {}
+    japanese_names: dict[str, str] = {}
+    params: dict[str, str] = {
+        "action": "query",
+        "format": "json",
+        "formatversion": "2",
+        "prop": "redirects|revisions",
+        "rdlimit": "max",
+        "rvprop": "content",
+        "rvslots": "main",
+        "rvsection": "0",
+        "titles": "|".join(batch),
+    }
+    while True:
+        url = PRTS_API_URL + "?" + urllib.parse.urlencode(params)
+        request = urllib.request.Request(
+            url,
+            headers={"User-Agent": "ArknightsONIMod-CatalogBuilder/1.0"},
+        )
+        body: bytes | None = None
+        last_error: Exception | None = None
+        for attempt in range(max(1, retries + 1)):
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    content_length = response.headers.get("Content-Length")
+                    if content_length is not None and int(content_length) > MAX_RESPONSE_BYTES:
+                        raise ValueError("PRTS alias response exceeds 1 MiB")
+                    body = response.read(MAX_RESPONSE_BYTES + 1)
+                break
+            except Exception as error:
+                last_error = error
+                if attempt < retries:
+                    time.sleep(0.5 * (attempt + 1))
+        if body is None:
+            raise last_error or RuntimeError("Failed to fetch PRTS aliases")
+        if len(body) > MAX_RESPONSE_BYTES:
+            raise ValueError("PRTS alias response exceeds 1 MiB")
+
+        payload = json.loads(body.decode("utf-8-sig"))
+        for page in payload.get("query", {}).get("pages", []):
+            title = str(page.get("title", ""))
+            if title not in result:
+                continue
+            revisions = page.get("revisions", [])
+            if revisions:
+                content = str(
+                    revisions[0].get("slots", {}).get("main", {}).get("content", "")
+                )
+                page_name = re.search(
+                    r"\{\{干员页面名\|[^|{}]*\|([^|{}]*)\|([^|{}]*)", content
+                )
+                if page_name is not None:
+                    english_name = page_name.group(1).strip()
+                    japanese_name = page_name.group(2).strip()
+                    if english_name:
+                        english_names[title] = english_name
+                    if japanese_name:
+                        japanese_names[title] = japanese_name
+            for redirect in page.get("redirects", []):
+                alias = str(redirect.get("title", "")).strip()
+                if alias and len(alias) <= 80 and alias not in result[title]:
+                    result[title].append(alias)
+
+        continuation = payload.get("continue")
+        if not isinstance(continuation, dict):
+            break
+        for key, value in continuation.items():
+            params[str(key)] = str(value)
+    return result, english_names, japanese_names
+
+
+def choose_english_name(name: str, aliases: list[str]) -> str | None:
+    candidates = [name, *aliases]
+    for candidate in candidates:
+        if re.search(r"[A-Za-z]", candidate):
+            return candidate
+    return None
+
+
 def fetch_meta(
-    operator: dict[str, str], cache_dir: pathlib.Path, retries: int
+    operator: dict[str, str], aliases: list[str], english_name: str | None,
+    japanese_name: str | None, cache_dir: pathlib.Path, retries: int
 ) -> tuple[dict[str, object], int]:
     character_id = operator["id"]
     cache_path = cache_dir / f"{character_id}.json"
@@ -76,14 +186,23 @@ def fetch_meta(
     if not skin_records:
         raise ValueError(f"{character_id} has no usable models")
 
-    return (
-        {
-            "id": character_id,
-            "name": str(operator["name"]),
-            "skins": skin_records,
-        },
-        fetched_bytes,
-    )
+    name = str(operator["name"])
+    record: dict[str, object] = {
+        "id": character_id,
+        "name": name,
+        "skins": skin_records,
+    }
+    english_name = english_name or choose_english_name(name, aliases)
+    if english_name is not None and english_name != name:
+        record["english_name"] = english_name
+    if japanese_name is not None and japanese_name != name:
+        record["japanese_name"] = japanese_name
+    useful_aliases = [
+        alias for alias in aliases if alias not in {name, english_name, japanese_name}
+    ]
+    if useful_aliases:
+        record["aliases"] = useful_aliases
+    return record, fetched_bytes
 
 
 def main() -> None:
@@ -101,6 +220,11 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--retries", type=int, default=2)
     parser.add_argument(
+        "--reuse-existing",
+        action="store_true",
+        help="Enrich the existing catalog with PRTS aliases without refetching model metadata",
+    )
+    parser.add_argument(
         "--cache-dir",
         type=pathlib.Path,
         default=pathlib.Path(".cache/operator-meta"),
@@ -108,12 +232,59 @@ def main() -> None:
     args = parser.parse_args()
 
     operators = read_operators(args.operators)
+    aliases_by_name, english_by_name, japanese_by_name = fetch_aliases(
+        operators, args.retries
+    )
+    if args.reuse_existing:
+        catalog = json.loads(args.output.read_text(encoding="utf-8-sig"))
+        records = catalog.get("operators")
+        if not isinstance(records, list) or len(records) != len(operators):
+            raise ValueError("Existing catalog does not match the PRTS operator snapshot")
+        for record in records:
+            name = str(record["name"])
+            aliases = aliases_by_name.get(name, [])
+            english_name = english_by_name.get(name) or choose_english_name(name, aliases)
+            japanese_name = japanese_by_name.get(name)
+            record.pop("english_name", None)
+            record.pop("japanese_name", None)
+            record.pop("aliases", None)
+            if english_name is not None and english_name != name:
+                record["english_name"] = english_name
+            if japanese_name is not None and japanese_name != name:
+                record["japanese_name"] = japanese_name
+            useful_aliases = [
+                alias
+                for alias in aliases
+                if alias not in {name, english_name, japanese_name}
+            ]
+            if useful_aliases:
+                record["aliases"] = useful_aliases
+        catalog["alias_source"] = (
+            PRTS_API_URL + "?action=query&prop=redirects%7Crevisions&rvsection=0"
+        )
+        args.output.write_text(
+            json.dumps(catalog, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(
+            f"Enriched {len(records)} operators in {args.output} "
+            f"({args.output.stat().st_size} bytes)"
+        )
+        return
     records: list[dict[str, object]] = []
     total_bytes = 0
     failures: list[str] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.workers)) as executor:
         futures = {
-            executor.submit(fetch_meta, operator, args.cache_dir, args.retries): operator
+            executor.submit(
+                fetch_meta,
+                operator,
+                aliases_by_name.get(str(operator["name"]), []),
+                english_by_name.get(str(operator["name"])),
+                japanese_by_name.get(str(operator["name"])),
+                args.cache_dir,
+                args.retries,
+            ): operator
             for operator in operators
         }
         for future in concurrent.futures.as_completed(futures):
@@ -137,6 +308,9 @@ def main() -> None:
         "schema_version": 1,
         "snapshot_date": "2026-06-04",
         "character_source": "https://static.prts.wiki/charinfo/charId20260604.js",
+        "alias_source": (
+            PRTS_API_URL + "?action=query&prop=redirects%7Crevisions&rvsection=0"
+        ),
         "meta_source_pattern": META_URL,
         "operators": records,
     }
