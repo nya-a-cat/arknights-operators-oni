@@ -8,7 +8,7 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 
 [English](./README.md) · [简体中文](./README.zh-CN.md) · [Usage: EN / 中文 / 日本語](./docs/usage_multilingual.md) · [Roadmap](#current-progress--roadmap) · [Installation](#installation)
 
-[![Version](https://img.shields.io/badge/version-0.3.2--alpha.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.1)
+[![Version](https://img.shields.io/badge/version-0.3.2--alpha.2-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.2)
 ![ONI tested](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
 ![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
 [![Repository](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
@@ -22,7 +22,7 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 Real Steam gameplay: four duplicants with different operators → individual appearance picker → action wheel → Amiya Sleep → automatic state mapping restored.
 
 > [!IMPORTANT]
-> Version `0.3.2-alpha.1` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
+> Version `0.3.2-alpha.2` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
 >
 > Each duplicant can keep its own operator, skin, and model. A global default remains available for new duplicants and for duplicants without an individual override.
 >

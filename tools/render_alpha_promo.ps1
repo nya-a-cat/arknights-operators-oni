@@ -61,7 +61,7 @@ try {
 	$graphics.DrawString("$arknightsCn X $oniCn   /   449 OPERATORS   /   LIVE SWITCHING", $subtitleFont, $muted, 62, 108)
 	$graphics.DrawString("AUTO-LOCALIZED OPTIONS: CN / EN   /   OPERATOR SEARCH: CN / EN / JP", $featureFont, $accent, 62, 151)
 	$graphics.FillRectangle($accent, 1545, 54, 310, 78)
-	$graphics.DrawString("v0.3.2-alpha.1", $badgeFont, $background, 1580, 78)
+	$graphics.DrawString("v0.3.2-alpha.2", $badgeFont, $background, 1580, 78)
 
 	for ($index = 0; $index -lt $cards.Count; $index++) {
 		$card = $cards[$index]

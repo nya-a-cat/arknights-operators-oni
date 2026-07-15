@@ -25,4 +25,4 @@ powershell -ExecutionPolicy Bypass -File .\tools\render_alpha_promo.ps1
 
 The default command reads the archived source screenshots and replaces `docs/images/arknights-oni-alpha-v0.3.2-workshop.png`. Use `-ScreenshotRoot` only when intentionally testing a different four-file capture set.
 
-Current output: 1,699,388 bytes; SHA-256 `A36C1A7525F14A301171EA6659F19D884C5924B5A52877B069E9E38DE964625A`.
+Current output: 1,699,379 bytes; SHA-256 `DF249767003CA8E946ECCF998C88CD5932F4EF2CEA624D709367156B383C9EE0`.

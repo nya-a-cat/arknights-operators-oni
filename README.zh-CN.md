@@ -8,7 +8,7 @@
 
 [English](./README.md) · [简体中文](./README.zh-CN.md) · [使用说明：中文 / English / 日本語](./docs/usage_multilingual.md) · [路线图](#当前进度与-roadmap) · [安装](#安装)
 
-[![版本](https://img.shields.io/badge/version-0.3.2--alpha.1-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.1)
+[![版本](https://img.shields.io/badge/version-0.3.2--alpha.2-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.2-alpha.2)
 ![ONI 实测](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
 ![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
 [![仓库](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
@@ -22,7 +22,7 @@
 真实 Steam 实机流程：四个复制人使用不同干员 → 单人外观选择器 → 动作转盘 → 阿米娅睡眠 → 恢复自动状态映射。
 
 > [!IMPORTANT]
-> 当前 `0.3.2-alpha.1` 实现的是 **Arknights Operators（明日方舟干员）** 模块：把可选择的干员 Spine 外观覆盖到复制人上，并将移动、工作、休息、睡眠、压力和死亡状态映射到对应动画。
+> 当前 `0.3.2-alpha.2` 实现的是 **Arknights Operators（明日方舟干员）** 模块：把可选择的干员 Spine 外观覆盖到复制人上，并将移动、工作、休息、睡眠、压力和死亡状态映射到对应动画。
 >
 > 每个复制人都可以保存自己的干员、皮肤和模型；全局默认继续用于新复制人，以及没有单独覆盖的复制人。
 >
