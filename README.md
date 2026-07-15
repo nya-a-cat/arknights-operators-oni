@@ -17,10 +17,6 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 
 ![Arknights Operators Alpha gameplay montage](./docs/images/arknights-oni-alpha-v0.3.2-workshop.png)
 
-![Real-game operator picker and action-wheel demo](./docs/images/arknights-operators-demo-v0.3.2.gif)
-
-Real Steam gameplay: four duplicants with different operators → individual appearance picker → action wheel → Amiya Sleep → automatic state mapping restored.
-
 > [!IMPORTANT]
 > Version `0.3.2-alpha.2` currently implements the **Arknights Operators** module. It replaces duplicant visuals with selectable operator Spine models and maps movement, work, rest, sleep, stress, and death states to matching animations.
 >

@@ -17,10 +17,6 @@
 
 ![Arknights Operators Alpha 实机拼图](./docs/images/arknights-oni-alpha-v0.3.2-workshop.png)
 
-![真实游戏干员选择器与动作转盘演示](./docs/images/arknights-operators-demo-v0.3.2.gif)
-
-真实 Steam 实机流程：四个复制人使用不同干员 → 单人外观选择器 → 动作转盘 → 阿米娅睡眠 → 恢复自动状态映射。
-
 > [!IMPORTANT]
 > 当前 `0.3.2-alpha.2` 实现的是 **Arknights Operators（明日方舟干员）** 模块：把可选择的干员 Spine 外观覆盖到复制人上，并将移动、工作、休息、睡眠、压力和死亡状态映射到对应动画。
 >

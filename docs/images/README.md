@@ -11,15 +11,6 @@ This directory keeps the editable inputs, deterministic renderer, and production
 
 The current image uses real Oxygen Not Included screenshots. The script applies fixed crops, scaling, borders, colour blocks, and text. GPT ImageGen was not used.
 
-## Current gameplay GIF
-
-- Output: [`arknights-operators-demo-v0.3.2.gif`](./arknights-operators-demo-v0.3.2.gif)
-- Production record: [`arknights-operators-demo-v0.3.2.layout.md`](./arknights-operators-demo-v0.3.2.layout.md)
-- Source captures: [`source/alpha-v0.3.2/gif`](./source/alpha-v0.3.2/gif)
-- Renderer: [`tools/render_operator_demo_gif.ps1`](../../tools/render_operator_demo_gif.ps1)
-
-The GIF is a deterministic sequence of five real Steam gameplay captures. It shows different operators on four duplicants, the individual appearance picker, the action wheel, Amiya's Sleep visual performance, and automatic mapping restoration. GPT ImageGen was not used.
-
 ## Editing workflow
 
 1. Keep the original screenshot files under a versioned `source/<release>` directory.
