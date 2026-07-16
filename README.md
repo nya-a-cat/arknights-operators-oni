@@ -26,7 +26,7 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 >
 > Steam Workshop title: **Arknights Operators / 明日方舟干员 [Alpha]**. In-game Mods menu title: **Arknights Operators（明日方舟干员）**.
 
-The current release has been smoke-tested in a four-duplicant isolated save on Oxygen Not Included build 740622. Texas, Amiya, Kal'tsit, and Exusiai were assigned to four different duplicants, saved, and restored after a full save reload.
+The recorded four-duplicant game-test baseline used the `0.3.2-alpha.1` candidate on Oxygen Not Included build 740622. Texas, Amiya, Kal'tsit, and Exusiai were assigned to four different duplicants, saved, and restored after a full save reload.
 
 ## What makes it special?
 
@@ -38,10 +38,10 @@ The current release has been smoke-tested in a four-duplicant isolated save on O
 - Map ONI movement, work, rest, sleep, stress, and death states to available operator animations.
 - Automatically use base models for daily/sleep states and front combat models for digging, combat, stun, and death.
 - Select a duplicant and press `Ctrl+F9` to open its action wheel for manual animation performances; the center button restores automatic mapping.
-- Choose between a bounded 512 MiB on-demand LRU cache and permanent retention of downloaded resources.
+- On the `0.3.3` development line, choose a configurable `128–2000 MiB` on-demand LRU cache (default `512 MiB`) or permanent retention of downloaded resources.
 - Merge concurrent requests for the same resource while allowing each duplicant to cancel its own wait independently.
 - Verify downloads with HTTPS source restrictions, temporary files, a SHA-256 index, and a 64 MiB per-file limit.
-- Recover all 449 catalog operators through a versioned manifest and per-operator GitHub Release packages when PRTS metadata or asset delivery fails.
+- Prepare a verified loader and cloud builder for a versioned 449-operator GitHub Release fallback snapshot. The initial `assets-v1.0.0` snapshot is still unpublished.
 - Fall back through the original duplicant visual, an optional bundled Spine asset, and the legacy frame path when an appearance cannot be loaded.
 
 ## Installation
@@ -54,6 +54,8 @@ The current release has been smoke-tested in a four-duplicant isolated save on O
 The repository does not install a compiler, browser, or large dependency automatically.
 
 ### Build and install
+
+The commands below build and install the Stable identity used by the existing local compatibility path:
 
 ```bash
 cd arknights_oni_mod_work/ArknightsOperatorsMod
@@ -74,20 +76,22 @@ Earlier local prototypes used the `AmiyaDuplicantMod` directory. The default ins
 > [!TIP]
 > Start the game through Steam, enable **Arknights Operators（明日方舟干员）** in the Mods menu, and restart when prompted. Launching the game executable directly can trigger Klei's Mod Safe Mode in some Steam environments.
 
-The Git source repository does not contain Arknights artwork, Spine skeletons, atlases, or copied PRTS web bundles. PRTS remains the primary on-demand source. If its metadata contract or file delivery fails, the Mod loads a pinned fallback manifest and the selected operator's package from the project's GitHub Release. The full 449-operator snapshot is generated on GitHub Actions, so contributors do not need to download it locally.
+The Git source repository does not contain Arknights artwork, Spine skeletons, atlases, or copied PRTS web bundles. PRTS remains the current on-demand source. The fallback loader and GitHub Actions builder are ready for a pinned manifest and the selected operator's package, while the initial `assets-v1.0.0` snapshot remains unpublished. Once that snapshot is reviewed and published, contributors can generate it in the cloud without downloading the full 449-operator asset set locally.
 
-The existing 64 MiB limit applies to an individual Spine source file as a download safety check. Release packages are fetched only for the selected operator and have a separate 512 MiB technical safety ceiling. The 100 MB preference used during local development is a disk-space preference: the cloud builder reports larger packages and continues.
+The existing 64 MiB limit applies to an individual Spine source file as a download safety check. Once the fallback snapshot is published, its packages will be fetched only for the selected operator and will retain a separate 512 MiB technical safety ceiling. The 100 MB preference used during local development is a disk-space preference: the cloud builder reports larger packages and continues.
 
 ## Resource strategies
 
+The published `0.3.2-alpha.2` package uses a fixed `512 MiB` on-demand budget. The `0.3.3` development line adds an integer capacity setting from `128` to `2000 MiB`, with `512 MiB` as the default.
+
 | Mode | Behaviour | Best for |
 | --- | --- | --- |
-| On-demand cache (recommended) | Fetch only the selected appearance. When the cache exceeds 512 MiB, evict the least recently used files that are not referenced. | Keeping disk usage bounded |
-| Keep downloaded resources | Fetch only the selected appearance and retain successfully cached files without capacity eviction. | Reusing visited appearances offline |
+| On-demand cache (recommended) | Fetch only the selected appearance. Set an integer budget from `128` to `2000 MiB`; the default is `512 MiB`. The settings page shows current usage and the target, and evicts least-recently-used resources that are neither active, downloading, nor leased. | Keeping disk usage bounded |
+| Keep downloaded resources | Fetch only the selected appearance and retain successfully cached files without capacity eviction. The capacity field is disabled while this mode is active and keeps its saved value for a later switch. | Reusing visited appearances offline |
 
 Neither mode pre-downloads the full operator catalog.
 
-Fallback packages follow the same retention choice. On-demand mode may evict an unused operator package under the 512 MiB LRU budget; permanent mode keeps successfully downloaded packages.
+After the snapshot is published, fallback packages follow the same retention choice. On-demand mode may evict an unused operator package under the selected LRU budget; permanent mode keeps successfully downloaded packages. The configurable cache budget does not change the `64 MiB` per-source-file limit or the `512 MiB` fallback-package safety ceiling.
 
 See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md) for the manifest contract, cloud build flow, trust boundary, and publication checklist.
 
@@ -119,6 +123,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [x] Automatic Chinese/English localization for the operator options interface
 - [x] Chinese/English/Japanese operator-name search from PRTS encyclopedia metadata
 - [x] Versioned all-operator fallback manifest, verified Release-package loader, and sharded GitHub Actions builder
+- [ ] Configurable `128–2000 MiB` cache (default `512 MiB`): code and regression tests complete on `develop`; game validation pending
 - [ ] Generate, inspect, and publish the initial 449-operator `assets-v1.0.0` snapshot
 - [ ] Move remaining runtime errors and diagnostics into ONI `STRINGS` resources and add more interface locales
 - [ ] Cache manager, download status, and diagnostics export
@@ -135,6 +140,27 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 See the [complete code review and roadmap](./docs/code_review_and_roadmap_20260715.md) for priorities, acceptance criteria, performance limits, and resource boundaries.
 
 ## Development
+
+The next development line is `0.3.3`. `main` contains game-tested stable code, `develop` carries integrated development work, and isolated `feature/*` branches cover higher-risk changes. Nightly and RC packages use a separate Testing identity; the current Steam Workshop item receives Stable packages only. See [Release channels and branch policy](./docs/release_channels.md).
+
+From the repository root, package each identity with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\build_mod_release.ps1 -Channel Stable -Version v0.3.3
+powershell -ExecutionPolicy Bypass -File .\tools\build_mod_release.ps1 -Channel Dev -Nightly
+powershell -ExecutionPolicy Bypass -File .\tools\build_mod_release.ps1 -Channel RC -Version v0.3.3-rc.1
+powershell -ExecutionPolicy Bypass -File .\tools\install_testing_mod.ps1 -PackagePath <testing-zip>
+```
+
+The first command produces the Stable identity. Dev and RC produce the isolated Testing identity; the final command installs only that Testing package.
+
+Run the complete local packaging probe after the channel DLLs are available:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\test_packaging_artifacts.ps1
+```
+
+This probe validates all three package identities, ZIP/sidecar hashes, the isolated Testing installer, and Nightly retention. It uses a temporary root under the repository `.cache` directory and never touches the real game or Local Mods directory.
 
 ```bash
 cd arknights_oni_mod_work/ArknightsOperatorsMod
@@ -159,6 +185,6 @@ The final integration test downloads a real, small PRTS fixture. The fallback te
 
 ## Project boundaries & third-party components
 
-This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public Git repository contains original Mod source code, tests, development notes, lightweight catalog metadata, separately licensed third-party code, and a promotional montage made from real gameplay screenshots. Runtime artwork and animation assets are retrieved by the user on demand from PRTS or, after a primary-source failure, from a versioned project Release snapshot.
+This is a non-commercial fan project with no affiliation with or endorsement by Klei, Hypergryph, or PRTS Wiki. Game and character rights belong to their respective owners. The public Git repository contains original Mod source code, tests, development notes, lightweight catalog metadata, separately licensed third-party code, and a promotional montage made from real gameplay screenshots. Runtime artwork and animation assets currently come from PRTS on demand. The prepared Release fallback becomes available after its first versioned asset snapshot is reviewed and published.
 
 No additional open-source license is currently granted for the original code. PLib, the Spine runtime, and catalog metadata remain subject to their respective licenses and source notices. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) and [DATA_NOTICE.md](./DATA_NOTICE.md).
