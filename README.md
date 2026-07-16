@@ -110,6 +110,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 
 - [ ] Base furniture, room themes, and animated decorations
 - [ ] Enemy and creature appearance packages
+- [ ] Assignable enemy and boss skins for duplicants, including examples such as The Demon King Amiya and Patriot
 - [ ] Skill, combat, work, and environmental effects
 - [ ] Typed content packages: `operator`, `voice`, `furniture`, `enemy`, and `effect`
 
