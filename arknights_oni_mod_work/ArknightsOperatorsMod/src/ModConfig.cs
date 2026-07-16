@@ -19,7 +19,10 @@ namespace ArknightsOperatorsMod {
 
 	[ConfigFile("config.json", true, true)]
 	public sealed class ModConfig : IOptions {
-		public const int CurrentSchemaVersion = 2;
+		public const int CurrentSchemaVersion = 3;
+		public const int MinimumCacheCapacityMiB = 128;
+		public const int DefaultCacheCapacityMiB = 512;
+		public const int MaximumCacheCapacityMiB = 2000;
 
 		[JsonProperty]
 		public int SchemaVersion { get; set; } = CurrentSchemaVersion;
@@ -27,6 +30,9 @@ namespace ArknightsOperatorsMod {
 		[JsonProperty]
 		public ResourcePersistencePolicy DownloadPolicy { get; set; } =
 			ResourcePersistencePolicy.OnDemandCache;
+
+		[JsonProperty]
+		public int CacheCapacityMiB { get; set; } = DefaultCacheCapacityMiB;
 
 		[JsonProperty]
 		public string DefaultCharacterId { get; set; } = "char_002_amiya";
@@ -40,16 +46,57 @@ namespace ArknightsOperatorsMod {
 		[JsonProperty]
 		public bool AutomaticModelSwitching { get; set; } = true;
 
-		internal void Normalize() {
-			SchemaVersion = CurrentSchemaVersion;
-			if (!Enum.IsDefined(typeof(ResourcePersistencePolicy), DownloadPolicy))
+		internal bool Normalize() {
+			bool changed = false;
+			if (SchemaVersion != CurrentSchemaVersion) {
+				SchemaVersion = CurrentSchemaVersion;
+				changed = true;
+			}
+			if (!Enum.IsDefined(typeof(ResourcePersistencePolicy), DownloadPolicy)) {
 				DownloadPolicy = ResourcePersistencePolicy.OnDemandCache;
-			if (string.IsNullOrWhiteSpace(DefaultCharacterId))
+				changed = true;
+			}
+			if (!IsValidCacheCapacityMiB(CacheCapacityMiB)) {
+				Debug.LogWarning("[ArknightsOperatorsMod] CacheCapacityMiB=" + CacheCapacityMiB +
+					" is outside 128-2000; restored to 512 MiB");
+				CacheCapacityMiB = DefaultCacheCapacityMiB;
+				changed = true;
+			}
+			if (string.IsNullOrWhiteSpace(DefaultCharacterId)) {
 				DefaultCharacterId = "char_002_amiya";
-			if (string.IsNullOrWhiteSpace(PreferredSkin))
+				changed = true;
+			}
+			if (string.IsNullOrWhiteSpace(PreferredSkin)) {
 				PreferredSkin = "默认";
-			if (string.IsNullOrWhiteSpace(PreferredModel))
+				changed = true;
+			}
+			if (string.IsNullOrWhiteSpace(PreferredModel)) {
 				PreferredModel = "基建";
+				changed = true;
+			}
+			return changed;
+		}
+
+		internal static bool IsValidCacheCapacityMiB(int capacityMiB) {
+			return capacityMiB >= MinimumCacheCapacityMiB &&
+				capacityMiB <= MaximumCacheCapacityMiB;
+		}
+
+		internal static long CacheCapacityBytes(int capacityMiB) {
+			if (!IsValidCacheCapacityMiB(capacityMiB))
+				capacityMiB = DefaultCacheCapacityMiB;
+			return capacityMiB * 1024L * 1024L;
+		}
+
+		internal static bool IsCacheUsageOverTarget(long indexedBytes,
+			ResourcePersistencePolicy policy, int capacityMiB) {
+			return policy == ResourcePersistencePolicy.OnDemandCache &&
+				indexedBytes > CacheCapacityBytes(capacityMiB);
+		}
+
+		internal static bool CanApplyCacheCapacityInput(ResourcePersistencePolicy policy,
+			bool inputValid) {
+			return policy == ResourcePersistencePolicy.Permanent || inputValid;
 		}
 
 		public IEnumerable<IOptionsEntry> CreateOptions() {
@@ -61,7 +108,7 @@ namespace ArknightsOperatorsMod {
 			Normalize();
 			ModConfigStore.SaveAndApply(this);
 			Debug.Log("[ArknightsOperatorsMod] Saved appearance " + DefaultCharacterId + " " +
-				PreferredSkin + "/" + PreferredModel);
+				PreferredSkin + "/" + PreferredModel + "; cache=" + CacheCapacityMiB + " MiB");
 		}
 	}
 
@@ -94,6 +141,10 @@ namespace ArknightsOperatorsMod {
 			get { return Current.DownloadPolicy; }
 		}
 
+		public static int CacheCapacityMiB {
+			get { return Current.CacheCapacityMiB; }
+		}
+
 		public static void Initialize() {
 			lock (Gate) {
 				EnsureInitializedNoLock();
@@ -112,11 +163,16 @@ namespace ArknightsOperatorsMod {
 			if (saved == null) throw new ArgumentNullException("saved");
 			Action<ModConfig> changed = null;
 			ModConfig snapshot = null;
+			bool cacheSettingsChanged = false;
 			lock (Gate) {
 				EnsureInitializedNoLock();
 				string previousAppearance = AppearanceKey(current);
+				ResourcePersistencePolicy previousPolicy = current.DownloadPolicy;
+				int previousCapacityMiB = current.CacheCapacityMiB;
 				current = Clone(saved);
 				current.Normalize();
+				cacheSettingsChanged = previousPolicy != current.DownloadPolicy ||
+					previousCapacityMiB != current.CacheCapacityMiB;
 				if (persist)
 					WriteNoLock(current);
 				else
@@ -127,6 +183,14 @@ namespace ArknightsOperatorsMod {
 				}
 			}
 			if (changed != null) changed(snapshot);
+			if (cacheSettingsChanged && PrtsResourceService.Instance != null) {
+				try {
+					PrtsResourceService.Instance.RunCacheMaintenance();
+				} catch (Exception error) {
+					Debug.LogWarning("[ArknightsOperatorsMod] Cache maintenance after saving settings failed: " +
+						error.Message);
+				}
+			}
 		}
 
 		internal static string AppearanceKey(ModConfig config) {
@@ -139,6 +203,7 @@ namespace ArknightsOperatorsMod {
 			return new ModConfig {
 				SchemaVersion = source.SchemaVersion,
 				DownloadPolicy = source.DownloadPolicy,
+				CacheCapacityMiB = source.CacheCapacityMiB,
 				DefaultCharacterId = source.DefaultCharacterId,
 				PreferredSkin = source.PreferredSkin,
 				PreferredModel = source.PreferredModel,
@@ -173,8 +238,11 @@ namespace ArknightsOperatorsMod {
 			if (loaded != null) {
 				loaded.Normalize();
 				current = loaded;
+			} else {
+				current = new ModConfig();
+				WriteNoLock(current);
 			}
-			lastWriteUtc = actualWriteUtc;
+			lastWriteUtc = GetLastWriteUtcNoLock();
 		}
 
 		private static ModConfig ReadNoLock() {
@@ -184,8 +252,8 @@ namespace ArknightsOperatorsMod {
 				ModConfig loaded = JsonConvert.DeserializeObject<ModConfig>(
 					File.ReadAllText(configPath)
 				);
-				if (loaded != null)
-					loaded.Normalize();
+				if (loaded != null && loaded.Normalize())
+					WriteNoLock(loaded);
 				return loaded;
 			} catch (Exception error) {
 				Debug.LogWarning("[ArknightsOperatorsMod] Failed to read config: " + error.Message);

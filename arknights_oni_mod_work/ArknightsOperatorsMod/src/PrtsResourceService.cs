@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace ArknightsOperatorsMod {
 	public sealed class PrtsResourceService : IDisposable {
+		[Obsolete("Use the configured cache capacity instead of the legacy fixed limit")]
 		public const long OnDemandCacheLimitBytes = 512L * 1024L * 1024L;
 
 		private readonly ResourceIndexStore index;
@@ -15,6 +16,8 @@ namespace ArknightsOperatorsMod {
 		private readonly object downloadGate = new object();
 		private readonly Dictionary<string, Task<string>> inFlightDownloads =
 			new Dictionary<string, Task<string>>(StringComparer.Ordinal);
+		private readonly Dictionary<string, int> inFlightResourceKeys =
+			new Dictionary<string, int>(StringComparer.Ordinal);
 		private readonly object activeGate = new object();
 		private readonly Dictionary<string, int> activeKeys = new Dictionary<string, int>(StringComparer.Ordinal);
 		private bool disposed;
@@ -92,17 +95,24 @@ namespace ArknightsOperatorsMod {
 					shared = null;
 				}
 				if (shared == null) {
-					shared = GetOrDownloadCoreAsync(request, CancellationToken.None);
-					inFlightDownloads[flightKey] = shared;
-					created = true;
+					IncrementInFlightNoLock(request.Key);
+					try {
+						shared = GetOrDownloadCoreAsync(request, CancellationToken.None);
+						inFlightDownloads[flightKey] = shared;
+						created = true;
+					} catch {
+						DecrementInFlightNoLock(request.Key);
+						throw;
+					}
 				}
 			}
 			if (created)
-				ObserveCompletedDownloadAsync(flightKey, shared);
+				ObserveCompletedDownloadAsync(flightKey, request.Key, shared);
 			return AwaitSharedAsync(shared, cancellationToken);
 		}
 
-		private async void ObserveCompletedDownloadAsync(string flightKey, Task<string> shared) {
+		private async void ObserveCompletedDownloadAsync(string flightKey, string resourceKey,
+			Task<string> shared) {
 			try {
 				await shared.ConfigureAwait(false);
 			} catch {
@@ -112,8 +122,22 @@ namespace ArknightsOperatorsMod {
 					if (inFlightDownloads.TryGetValue(flightKey, out current) &&
 						object.ReferenceEquals(current, shared))
 						inFlightDownloads.Remove(flightKey);
+					DecrementInFlightNoLock(resourceKey);
 				}
 			}
+		}
+
+		private void IncrementInFlightNoLock(string resourceKey) {
+			int count;
+			inFlightResourceKeys.TryGetValue(resourceKey, out count);
+			inFlightResourceKeys[resourceKey] = count + 1;
+		}
+
+		private void DecrementInFlightNoLock(string resourceKey) {
+			int count;
+			if (!inFlightResourceKeys.TryGetValue(resourceKey, out count)) return;
+			if (count <= 1) inFlightResourceKeys.Remove(resourceKey);
+			else inFlightResourceKeys[resourceKey] = count - 1;
 		}
 
 		private static async Task<string> AwaitSharedAsync(
@@ -216,9 +240,14 @@ namespace ArknightsOperatorsMod {
 
 		public long RunCacheMaintenance() {
 			ThrowIfDisposed();
-			if (ModConfigStore.DownloadPolicy == ResourcePersistencePolicy.Permanent)
+			ModConfig config = ModConfigStore.Current;
+			if (config.DownloadPolicy == ResourcePersistencePolicy.Permanent)
 				return index.GetIndexedDiskUsage();
-			return index.TrimLeastRecentlyUsed(OnDemandCacheLimitBytes, SnapshotProtectedKeys(null));
+			return TrimLeastRecentlyUsed(CacheLimitBytesForMiB(config.CacheCapacityMiB), null);
+		}
+
+		internal static long CacheLimitBytesForMiB(int capacityMiB) {
+			return ModConfig.CacheCapacityBytes(capacityMiB);
 		}
 
 		public IDisposable Acquire(IEnumerable<string> keys) {
@@ -238,19 +267,22 @@ namespace ArknightsOperatorsMod {
 		}
 
 		private void ApplyCachePolicy(string protectedKey) {
-			if (ModConfigStore.DownloadPolicy == ResourcePersistencePolicy.Permanent)
+			ModConfig config = ModConfigStore.Current;
+			if (config.DownloadPolicy == ResourcePersistencePolicy.Permanent)
 				return;
-			HashSet<string> protectedKeys = SnapshotProtectedKeys(protectedKey);
-			index.TrimLeastRecentlyUsed(OnDemandCacheLimitBytes, protectedKeys);
+			TrimLeastRecentlyUsed(CacheLimitBytesForMiB(config.CacheCapacityMiB), protectedKey);
 		}
 
-		private HashSet<string> SnapshotProtectedKeys(string extraKey) {
-			HashSet<string> protectedKeys = new HashSet<string>(StringComparer.Ordinal);
-			lock (activeGate) {
-				foreach (string key in activeKeys.Keys) protectedKeys.Add(key);
+		private long TrimLeastRecentlyUsed(long limitBytes, string extraKey) {
+			lock (downloadGate) {
+				lock (activeGate) {
+					HashSet<string> protectedKeys = new HashSet<string>(StringComparer.Ordinal);
+					foreach (string key in inFlightResourceKeys.Keys) protectedKeys.Add(key);
+					foreach (string key in activeKeys.Keys) protectedKeys.Add(key);
+					if (!string.IsNullOrEmpty(extraKey)) protectedKeys.Add(extraKey);
+					return index.TrimLeastRecentlyUsed(limitBytes, protectedKeys);
+				}
 			}
-			if (!string.IsNullOrEmpty(extraKey)) protectedKeys.Add(extraKey);
-			return protectedKeys;
 		}
 
 		private void Release(IList<string> keys) {
@@ -260,6 +292,14 @@ namespace ArknightsOperatorsMod {
 					if (!activeKeys.TryGetValue(keys[i], out count)) continue;
 					if (count <= 1) activeKeys.Remove(keys[i]);
 					else activeKeys[keys[i]] = count - 1;
+				}
+			}
+			if (!disposed) {
+				try {
+					ApplyCachePolicy(null);
+				} catch (Exception error) {
+					Debug.LogWarning("[ArknightsOperatorsMod] Cache maintenance after releasing resources failed: " +
+						error.Message);
 				}
 			}
 		}
@@ -359,9 +399,8 @@ namespace ArknightsOperatorsMod {
 			}
 
 			public void Dispose() {
-				PrtsResourceService current = owner;
+				PrtsResourceService current = Interlocked.Exchange(ref owner, null);
 				if (current == null) return;
-				owner = null;
 				current.Release(keys);
 			}
 		}

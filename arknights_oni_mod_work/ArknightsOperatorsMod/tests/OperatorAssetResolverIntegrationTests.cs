@@ -17,14 +17,36 @@ namespace ArknightsOperatorsMod {
 	public enum ResourcePersistencePolicy { OnDemandCache, Permanent }
 
 	public sealed class ModConfig {
+		public const int MinimumCacheCapacityMiB = 128;
+		public const int DefaultCacheCapacityMiB = 512;
+		public const int MaximumCacheCapacityMiB = 2000;
+
+		public ResourcePersistencePolicy DownloadPolicy { get; set; } =
+			ResourcePersistencePolicy.OnDemandCache;
+		public int CacheCapacityMiB { get; set; } = DefaultCacheCapacityMiB;
 		public string DefaultCharacterId { get; set; }
 		public string PreferredSkin { get; set; }
 		public string PreferredModel { get; set; }
+
+		public static long CacheCapacityBytes(int capacityMiB) {
+			if (capacityMiB < MinimumCacheCapacityMiB || capacityMiB > MaximumCacheCapacityMiB)
+				capacityMiB = DefaultCacheCapacityMiB;
+			return capacityMiB * 1024L * 1024L;
+		}
 	}
 
 	public static class ModConfigStore {
 		public static ResourcePersistencePolicy DownloadPolicy {
 			get { return ResourcePersistencePolicy.OnDemandCache; }
+		}
+
+		public static ModConfig Current {
+			get {
+				return new ModConfig {
+					DownloadPolicy = DownloadPolicy,
+					CacheCapacityMiB = ModConfig.DefaultCacheCapacityMiB
+				};
+			}
 		}
 	}
 
@@ -68,6 +90,7 @@ internal static class OperatorAssetResolverIntegrationTests {
 	public static int Main(string[] args) {
 		if (args.Length != 1) throw new ArgumentException("Expected an isolated cache directory");
 		ModAssets.SharedRoot = Path.GetFullPath(args[0]);
+		List<OperatorAssetBundle> heldBundles = new List<OperatorAssetBundle>();
 		PrtsResourceService.Initialize();
 		try {
 			ModConfig config = new ModConfig {
@@ -76,6 +99,23 @@ internal static class OperatorAssetResolverIntegrationTests {
 				PreferredModel = "基建"
 			};
 			OperatorAssetResolver resolver = new OperatorAssetResolver(PrtsResourceService.Instance);
+			if (string.Equals(Environment.GetEnvironmentVariable("ARKNIGHTS_INTEGRATION_SMOKE"),
+				"1", StringComparison.Ordinal)) {
+				Console.Error.WriteLine("integration-smoke: resolving default appearance");
+				OperatorAssetBundle smoke = resolver.ResolveAsync(config, CancellationToken.None).
+					GetAwaiter().GetResult();
+				try {
+					Require(File.Exists(smoke.AtlasPath), "smoke atlas not cached");
+					Require(File.Exists(smoke.SkeletonPath), "smoke skeleton not cached");
+					Require(smoke.TexturePaths.Count >= 1, "smoke atlas pages not cached");
+					Console.WriteLine("OperatorAssetResolverIntegrationTests smoke: resolved " +
+						smoke.CharacterId + " " + smoke.Skin + "/" + smoke.Model +
+						" pages=" + smoke.TexturePaths.Count);
+				} finally {
+					smoke.Dispose();
+				}
+				return 0;
+			}
 			Task<OperatorAssetBundle>[] coldLoads = new Task<OperatorAssetBundle>[4];
 			for (int i = 0; i < coldLoads.Length; i++)
 				coldLoads[i] = resolver.ResolveAsync(config, CancellationToken.None);
@@ -93,6 +133,8 @@ internal static class OperatorAssetResolverIntegrationTests {
 			Require(canceled, "a canceled caller kept waiting for the shared download");
 			Task.WaitAll(coldLoads);
 			OperatorAssetBundle bundle = coldLoads[0].Result;
+			for (int i = 0; i < coldLoads.Length; i++)
+				heldBundles.Add(coldLoads[i].Result);
 			for (int i = 1; i < coldLoads.Length; i++) {
 				Require(coldLoads[i].Result.ResourceVersion == bundle.ResourceVersion,
 					"parallel cold load version mismatch");
@@ -118,6 +160,7 @@ internal static class OperatorAssetResolverIntegrationTests {
 
 			long firstUsage = PrtsResourceService.Instance.IndexedDiskUsage;
 			OperatorAssetBundle cached = resolver.ResolveAsync(config, CancellationToken.None).GetAwaiter().GetResult();
+			heldBundles.Add(cached);
 			Require(cached.ResourceVersion == bundle.ResourceVersion, "cache version mismatch");
 			Require(PrtsResourceService.Instance.IndexedDiskUsage == firstUsage, "cache reuse changed disk usage");
 
@@ -127,6 +170,7 @@ internal static class OperatorAssetResolverIntegrationTests {
 			File.WriteAllBytes(cached.SkeletonPath, corruptSkeleton);
 			OperatorAssetBundle repaired = resolver.ResolveAsync(config, CancellationToken.None).
 				GetAwaiter().GetResult();
+			heldBundles.Add(repaired);
 			Require(ComputeFileSha256(repaired.SkeletonPath) == expectedSkeletonHash,
 				"same-length cache corruption was not repaired");
 
@@ -134,6 +178,7 @@ internal static class OperatorAssetResolverIntegrationTests {
 			config.PreferredModel = "正面";
 			OperatorAssetBundle alternate = resolver.ResolveAsync(config, CancellationToken.None).
 				GetAwaiter().GetResult();
+			heldBundles.Add(alternate);
 			Require(alternate.CharacterId == "char_002_amiya", "alternate character mismatch");
 			Require(alternate.Skin == "播种者", "alternate skin selection mismatch");
 			Require(alternate.Model == "正面", "alternate model selection mismatch");
@@ -149,6 +194,8 @@ internal static class OperatorAssetResolverIntegrationTests {
 				" pages=" + bundle.TexturePaths.Count + " bytes=" + firstUsage);
 			return 0;
 		} finally {
+			for (int i = heldBundles.Count - 1; i >= 0; i--)
+				heldBundles[i].Dispose();
 			PrtsResourceService.Shutdown();
 		}
 	}

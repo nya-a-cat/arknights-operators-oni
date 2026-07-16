@@ -66,6 +66,7 @@ namespace ArknightsOperatorsMod {
 		private float calibratedScale = 1f;
 		private float calibratedCenterX;
 		private CancellationTokenSource loadCancellation;
+		private Task<OperatorAssetBundle> pendingBundleTask;
 		private IDisposable resourceLease;
 		private int loadGeneration;
 		private OperatorAppearanceOverride appearanceOverride;
@@ -102,14 +103,15 @@ namespace ArknightsOperatorsMod {
 			}
 		}
 
+		private void OnDisable() {
+			loadGeneration++;
+			CancelPendingAppearanceLoad();
+		}
+
 		private void OnDestroy() {
 			ModConfigStore.AppearanceChanged -= OnAppearanceChanged;
 			loadGeneration++;
-			if (loadCancellation != null) {
-				loadCancellation.Cancel();
-				loadCancellation.Dispose();
-				loadCancellation = null;
-			}
+			CancelPendingAppearanceLoad();
 			if (resourceLease != null) {
 				resourceLease.Dispose();
 				resourceLease = null;
@@ -180,10 +182,7 @@ namespace ArknightsOperatorsMod {
 
 		private void BeginAppearanceLoad(ModConfig config, bool allowFallback) {
 			loadGeneration++;
-			if (loadCancellation != null) {
-				loadCancellation.Cancel();
-				loadCancellation.Dispose();
-			}
+			CancelPendingAppearanceLoad();
 			loadCancellation = new CancellationTokenSource();
 			loadingModel = config.PreferredModel;
 			lastAttemptedModel = config.PreferredModel;
@@ -201,13 +200,24 @@ namespace ArknightsOperatorsMod {
 					config,
 					cancellationToken
 				);
+				Task<OperatorAssetBundle> replaced = Interlocked.Exchange(ref pendingBundleTask, task);
+				if (replaced != null && !object.ReferenceEquals(replaced, task))
+					QueueBundleCleanup(replaced);
 				while (!task.IsCompleted) {
-					if (cancellationToken.IsCancellationRequested || generation != loadGeneration)
+					if (cancellationToken.IsCancellationRequested || generation != loadGeneration) {
+						Interlocked.CompareExchange(ref pendingBundleTask, null, task);
+						QueueBundleCleanup(task);
 						yield break;
+					}
 					yield return null;
 				}
 				if (task.IsCanceled || cancellationToken.IsCancellationRequested ||
-					generation != loadGeneration) yield break;
+					generation != loadGeneration) {
+					Interlocked.CompareExchange(ref pendingBundleTask, null, task);
+					QueueBundleCleanup(task);
+					yield break;
+				}
+				Interlocked.CompareExchange(ref pendingBundleTask, null, task);
 				if (task.IsFaulted) remoteError = task.Exception.GetBaseException();
 				else bundle = task.Result;
 			} else {
@@ -219,19 +229,23 @@ namespace ArknightsOperatorsMod {
 				IDisposable nextLease = null;
 				LoadedSpineVisual prepared = null;
 				try {
-					nextLease = service.Acquire(bundle.ResourceKeys);
+					nextLease = bundle.TakeResourceLease();
+					if (nextLease == null) nextLease = service.Acquire(bundle.ResourceKeys);
 					prepared = PrepareSkeleton(bundle.AtlasPath, bundle.SkeletonPath);
 					if (!cancellationToken.IsCancellationRequested && generation == loadGeneration) {
-						ApplySkeleton(prepared);
+						ApplyPreparedAppearanceTransactional(prepared, bundle.Model);
 						prepared = null;
-						activeModel = bundle.Model;
-						loadingModel = null;
 						IDisposable previousLease = resourceLease;
 						resourceLease = nextLease;
 						nextLease = null;
-						if (previousLease != null) previousLease.Dispose();
-						PlayBestAnimation(CurrentEffectiveAnimation());
-						HideSourceVisual();
+						if (previousLease != null) {
+							try {
+								previousLease.Dispose();
+							} catch (Exception error) {
+								Debug.LogWarning("[ArknightsOperatorsMod] Previous resource lease cleanup failed: " +
+									error.Message);
+							}
+						}
 						remoteLoaded = true;
 						Debug.Log("[ArknightsOperatorsMod] Loaded operator " + bundle.CharacterId + " " +
 							bundle.Skin + "/" + bundle.Model + " version=" + bundle.ResourceVersion);
@@ -242,6 +256,7 @@ namespace ArknightsOperatorsMod {
 				} finally {
 					if (prepared != null) prepared.Dispose();
 					if (nextLease != null) nextLease.Dispose();
+					bundle.Dispose();
 				}
 			}
 			if (remoteLoaded) yield break;
@@ -256,14 +271,16 @@ namespace ArknightsOperatorsMod {
 			}
 
 			bool loaded = false;
+			bool sourceAlreadyHidden = false;
 			if (string.Equals(config.DefaultCharacterId, "char_002_amiya", StringComparison.OrdinalIgnoreCase)) {
 				Debug.LogWarning("[ArknightsOperatorsMod] PRTS asset load failed; trying bundled fallback: " + remoteError);
+				LoadedSpineVisual fallbackPrepared = null;
 				try {
-					LoadSkeleton(ModAssets.AmiyaAtlasPath, ModAssets.AmiyaSkeletonPath);
-					activeModel = "基建";
-					loadingModel = null;
-					PlayBestAnimation(CurrentEffectiveAnimation());
+					fallbackPrepared = PrepareSkeleton(ModAssets.AmiyaAtlasPath, ModAssets.AmiyaSkeletonPath);
+					ApplyPreparedAppearanceTransactional(fallbackPrepared, "基建");
+					fallbackPrepared = null;
 					loaded = true;
+					sourceAlreadyHidden = true;
 				} catch (Exception spineError) {
 					Debug.LogWarning("[ArknightsOperatorsMod] Bundled skeleton failed; trying frame fallback: " + spineError);
 					try {
@@ -272,6 +289,8 @@ namespace ArknightsOperatorsMod {
 					} catch (Exception frameError) {
 						Debug.LogError("[ArknightsOperatorsMod] All operator visuals failed; keeping vanilla duplicant: " + frameError);
 					}
+				} finally {
+					if (fallbackPrepared != null) fallbackPrepared.Dispose();
 				}
 			} else {
 				Debug.LogWarning("[ArknightsOperatorsMod] PRTS asset load failed for " +
@@ -280,12 +299,29 @@ namespace ArknightsOperatorsMod {
 
 			if (loaded) {
 				loadingModel = null;
-				HideSourceVisual();
+				if (!sourceAlreadyHidden) HideSourceVisual();
 				Debug.Log("[ArknightsOperatorsMod] Operator overlay attached to " + gameObject.name);
 			} else {
 				loadingModel = null;
 				enabled = false;
 			}
+		}
+
+		private void CancelPendingAppearanceLoad() {
+			if (loadCancellation != null) {
+				loadCancellation.Cancel();
+				loadCancellation.Dispose();
+				loadCancellation = null;
+			}
+			Task<OperatorAssetBundle> pending = Interlocked.Exchange(ref pendingBundleTask, null);
+			if (pending != null)
+				QueueBundleCleanup(pending);
+		}
+
+		private static void QueueBundleCleanup(Task<OperatorAssetBundle> task) {
+			Task cleanup = OperatorAssetBundleLifecycle.DisposeWhenCompleteAsync(task);
+			if (cleanup.IsFaulted)
+				Debug.LogWarning("[ArknightsOperatorsMod] Abandoned bundle cleanup failed");
 		}
 
 		private string CurrentOniAnimation() {
@@ -392,11 +428,7 @@ namespace ArknightsOperatorsMod {
 
 		private void CancelPendingModelLoad() {
 			loadGeneration++;
-			if (loadCancellation != null) {
-				loadCancellation.Cancel();
-				loadCancellation.Dispose();
-				loadCancellation = null;
-			}
+			CancelPendingAppearanceLoad();
 			loadingModel = null;
 		}
 
@@ -405,10 +437,6 @@ namespace ArknightsOperatorsMod {
 			if (string.Equals(desired, actual, StringComparison.OrdinalIgnoreCase)) return true;
 			return string.Equals(desired, "正面", StringComparison.Ordinal) &&
 				string.Equals(actual, "战斗", StringComparison.Ordinal);
-		}
-
-		private void LoadSkeleton(string atlasPath, string skeletonPath) {
-			ApplySkeleton(PrepareSkeleton(atlasPath, skeletonPath));
 		}
 
 		private LoadedSpineVisual PrepareSkeleton(string atlasPath, string skeletonPath) {
@@ -447,8 +475,94 @@ namespace ArknightsOperatorsMod {
 			}
 		}
 
-		private void ApplySkeleton(LoadedSpineVisual loaded) {
+		private void ApplyPreparedAppearanceTransactional(LoadedSpineVisual loaded, string model) {
+			if (loaded == null) throw new ArgumentNullException("loaded");
+			Mesh previousMesh = mesh;
+			Mesh nextMesh = new Mesh { name = "ArknightsSpineOverlayMesh" };
+			nextMesh.MarkDynamic();
 			UnityTextureLoader previousTextureLoader = textureLoader;
+			Spine.Skeleton previousSkeleton = skeleton;
+			Spine.AnimationState previousState = state;
+			SkeletonData previousSkeletonData = skeletonData;
+			Material[] previousRendererMaterials = meshRenderer.sharedMaterials;
+			Material[] previousAssignedMaterials = assignedMaterials;
+			int previousSortingOrder = meshRenderer.sortingOrder;
+			bool previousFrameFallbackMode = frameFallbackMode;
+			string previousSpineAnimation = currentSpineAnimation;
+			OperatorAnimationPlan previousSpinePlan = currentSpinePlan;
+			string[] previousAvailableAnimations = availableSpineAnimations.ToArray();
+			bool previousScaleInitialized = scaleInitialized;
+			float previousCalibratedScale = calibratedScale;
+			float previousCalibratedCenterX = calibratedCenterX;
+			float previousRawMinX = rawMinX;
+			float previousRawMinY = rawMinY;
+			float previousRawMaxX = rawMaxX;
+			float previousRawMaxY = rawMaxY;
+			Vector3 previousVisualPosition = visualRoot.transform.localPosition;
+			Vector3 previousVisualScale = visualRoot.transform.localScale;
+			string previousActiveModel = activeModel;
+			string previousLoadingModel = loadingModel;
+			bool previousSourceHidden = sourceHidden;
+			try {
+				mesh = nextMesh;
+				meshFilter.sharedMesh = nextMesh;
+				ApplySkeleton(loaded);
+				activeModel = model;
+				loadingModel = null;
+				PlayBestAnimation(CurrentEffectiveAnimation());
+				HideSourceVisual();
+			} catch {
+				textureLoader = previousTextureLoader;
+				skeleton = previousSkeleton;
+				state = previousState;
+				skeletonData = previousSkeletonData;
+				frameFallbackMode = previousFrameFallbackMode;
+				currentSpineAnimation = previousSpineAnimation;
+				currentSpinePlan = previousSpinePlan;
+				availableSpineAnimations.Clear();
+				availableSpineAnimations.AddRange(previousAvailableAnimations);
+				scaleInitialized = previousScaleInitialized;
+				calibratedScale = previousCalibratedScale;
+				calibratedCenterX = previousCalibratedCenterX;
+				rawMinX = previousRawMinX;
+				rawMinY = previousRawMinY;
+				rawMaxX = previousRawMaxX;
+				rawMaxY = previousRawMaxY;
+				activeModel = previousActiveModel;
+				loadingModel = previousLoadingModel;
+				assignedMaterials = previousAssignedMaterials;
+				mesh = previousMesh;
+				meshFilter.sharedMesh = previousMesh;
+				meshRenderer.sharedMaterials = previousRendererMaterials;
+				meshRenderer.sortingOrder = previousSortingOrder;
+				visualRoot.transform.localPosition = previousVisualPosition;
+				visualRoot.transform.localScale = previousVisualScale;
+				if (!previousSourceHidden) {
+					try {
+						RestoreSourceVisuals();
+					} catch (Exception restoreError) {
+						Debug.LogWarning("[ArknightsOperatorsMod] Source visual rollback failed: " +
+							restoreError.Message);
+					}
+				} else {
+					sourceHidden = true;
+				}
+				Destroy(nextMesh);
+				throw;
+			}
+
+			if (previousTextureLoader != null && previousTextureLoader != textureLoader) {
+				try {
+					previousTextureLoader.Dispose();
+				} catch (Exception error) {
+					Debug.LogWarning("[ArknightsOperatorsMod] Previous texture cleanup failed: " +
+						error.Message);
+				}
+			}
+			if (previousMesh != null && previousMesh != mesh) Destroy(previousMesh);
+		}
+
+		private void ApplySkeleton(LoadedSpineVisual loaded) {
 			textureLoader = loaded.TextureLoader;
 			skeletonData = loaded.SkeletonData;
 			skeleton = loaded.Skeleton;
@@ -463,7 +577,6 @@ namespace ArknightsOperatorsMod {
 			currentSpinePlan = null;
 			scaleInitialized = false;
 			InitializeScaleFromReferenceAnimation();
-			if (previousTextureLoader != null) previousTextureLoader.Dispose();
 
 			LogAvailableAnimations();
 		}

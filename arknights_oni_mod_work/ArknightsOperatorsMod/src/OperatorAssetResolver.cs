@@ -9,7 +9,9 @@ using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace ArknightsOperatorsMod {
-	public sealed class OperatorAssetBundle {
+	public sealed class OperatorAssetBundle : IDisposable {
+		private IDisposable resourceLease;
+
 		public string CharacterId { get; private set; }
 		public string CharacterName { get; private set; }
 		public string Skin { get; private set; }
@@ -22,7 +24,7 @@ namespace ArknightsOperatorsMod {
 
 		internal OperatorAssetBundle(string characterId, string characterName, string skin, string model,
 			string resourceVersion, string atlasPath, string skeletonPath, IList<string> texturePaths,
-			IList<string> resourceKeys) {
+			IList<string> resourceKeys, IDisposable resourceLease) {
 			CharacterId = characterId;
 			CharacterName = characterName;
 			Skin = skin;
@@ -32,6 +34,27 @@ namespace ArknightsOperatorsMod {
 			SkeletonPath = skeletonPath;
 			TexturePaths = texturePaths;
 			ResourceKeys = resourceKeys;
+			this.resourceLease = resourceLease;
+		}
+
+		internal IDisposable TakeResourceLease() {
+			return Interlocked.Exchange(ref resourceLease, null);
+		}
+
+		public void Dispose() {
+			IDisposable lease = Interlocked.Exchange(ref resourceLease, null);
+			if (lease != null) lease.Dispose();
+		}
+	}
+
+	internal static class OperatorAssetBundleLifecycle {
+		internal static async Task DisposeWhenCompleteAsync(Task<OperatorAssetBundle> task) {
+			if (task == null) return;
+			try {
+				OperatorAssetBundle bundle = await task.ConfigureAwait(false);
+				if (bundle != null) bundle.Dispose();
+			} catch {
+			}
 		}
 	}
 
@@ -90,17 +113,19 @@ namespace ArknightsOperatorsMod {
 						"[ArknightsOperatorsMod] PRTS snapshot files failed; installing the Release package: " +
 						directError.Message
 					);
-					await OperatorFallbackPackageInstaller.InstallAsync(
-						resources,
-						package,
-						appearance,
-						cancellationToken
-					).ConfigureAwait(false);
-					return await ResolveFromFallbackFilesAsync(
-						package,
-						appearance,
-						cancellationToken
-					).ConfigureAwait(false);
+					using (resources.Acquire(ResourceKeysForAppearance(package, appearance))) {
+						await OperatorFallbackPackageInstaller.InstallAsync(
+							resources,
+							package,
+							appearance,
+							cancellationToken
+						).ConfigureAwait(false);
+						return await ResolveFromFallbackFilesAsync(
+							package,
+							appearance,
+							cancellationToken
+						).ConfigureAwait(false);
+					}
 				}
 			} catch (OperationCanceledException) {
 				throw;
@@ -127,9 +152,14 @@ namespace ArknightsOperatorsMod {
 				metaRelativePath,
 				refreshBucket
 			);
-			string metaPath = await resources.GetOrDownloadAsync(metaRequest, cancellationToken).ConfigureAwait(false);
-			string metaText = File.ReadAllText(metaPath);
-			JObject meta = JObject.Parse(metaText);
+			string metaText;
+			JObject meta;
+			using (resources.Acquire(new[] { metaRequest.Key })) {
+				string metaPath = await resources.GetOrDownloadAsync(metaRequest, cancellationToken)
+					.ConfigureAwait(false);
+				metaText = File.ReadAllText(metaPath);
+				meta = JObject.Parse(metaText);
+			}
 			string resourceVersion = ComputeSha256(metaText).Substring(0, 16);
 
 			JObject skins = meta["skin"] as JObject;
@@ -146,37 +176,59 @@ namespace ArknightsOperatorsMod {
 			Uri skeletonUri = new Uri(prefix, fileBase + ".skel");
 			string relativeBase = Path.Combine("operators", characterId,
 				fileBase.Replace('/', Path.DirectorySeparatorChar));
-			List<string> resourceKeys = new List<string>();
 			string atlasKey = AssetKey(characterId, skin.Name, model.Name, "atlas");
 			string skeletonKey = AssetKey(characterId, skin.Name, model.Name, "skel");
-			string atlasPath = await resources.GetOrDownloadAsync(new PrtsAssetRequest(
-				atlasKey, atlasUri, relativeBase + ".atlas", resourceVersion
-			), cancellationToken).ConfigureAwait(false);
-			string skeletonPath = await resources.GetOrDownloadAsync(new PrtsAssetRequest(
-				skeletonKey, skeletonUri, relativeBase + ".skel", resourceVersion
-			), cancellationToken).ConfigureAwait(false);
-			resourceKeys.Add(atlasKey);
-			resourceKeys.Add(skeletonKey);
-
-			List<string> texturePaths = new List<string>();
-			IList<string> pages = ParseAtlasPages(File.ReadAllText(atlasPath));
-			if (pages.Count == 0) throw new InvalidDataException("PRTS atlas has no texture pages");
+			string atlasPath;
+			IList<string> pages;
+			List<string> resourceKeys = new List<string> { atlasKey, skeletonKey };
+			List<string> pageNames = new List<string>();
 			string localDirectory = Path.GetDirectoryName(relativeBase);
-			for (int i = 0; i < pages.Count; i++) {
-				string page = ValidateRelativeAssetPath(pages[i]);
-				if (page.IndexOf('/') >= 0) throw new InvalidDataException("Nested atlas page paths are not supported: " + page);
-				string pageRelativePath = Path.Combine(localDirectory, page);
-				string pageKey = AssetKey(characterId, skin.Name, model.Name, "page:" + page);
-				string pagePath = await resources.GetOrDownloadAsync(new PrtsAssetRequest(
-					pageKey,
-					new Uri(atlasUri, page), pageRelativePath, resourceVersion
+			IDisposable bundleLease = null;
+			using (resources.Acquire(new[] { atlasKey })) {
+				atlasPath = await resources.GetOrDownloadAsync(new PrtsAssetRequest(
+					atlasKey, atlasUri, relativeBase + ".atlas", resourceVersion
 				), cancellationToken).ConfigureAwait(false);
-				texturePaths.Add(pagePath);
-				resourceKeys.Add(pageKey);
+				pages = ParseAtlasPages(File.ReadAllText(atlasPath));
+				if (pages.Count == 0) throw new InvalidDataException("PRTS atlas has no texture pages");
+				for (int i = 0; i < pages.Count; i++) {
+					string page = ValidateRelativeAssetPath(pages[i]);
+					if (page.IndexOf('/') >= 0) throw new InvalidDataException("Nested atlas page paths are not supported: " + page);
+					pageNames.Add(page);
+					resourceKeys.Add(AssetKey(characterId, skin.Name, model.Name, "page:" + page));
+				}
+				bundleLease = resources.Acquire(resourceKeys);
 			}
 
-			return new OperatorAssetBundle(characterId, (string)meta["name"] ?? characterId,
-				skin.Name, model.Name, resourceVersion, atlasPath, skeletonPath, texturePaths, resourceKeys);
+			try {
+				string skeletonPath = await resources.GetOrDownloadAsync(new PrtsAssetRequest(
+					skeletonKey, skeletonUri, relativeBase + ".skel", resourceVersion
+				), cancellationToken).ConfigureAwait(false);
+				List<string> texturePaths = new List<string>();
+				for (int i = 0; i < pageNames.Count; i++) {
+					string page = pageNames[i];
+					string pageKey = resourceKeys[i + 2];
+					texturePaths.Add(await resources.GetOrDownloadAsync(new PrtsAssetRequest(
+						pageKey,
+						new Uri(atlasUri, page), Path.Combine(localDirectory, page), resourceVersion
+					), cancellationToken).ConfigureAwait(false));
+				}
+				OperatorAssetBundle bundle = new OperatorAssetBundle(
+					characterId,
+					(string)meta["name"] ?? characterId,
+					skin.Name,
+					model.Name,
+					resourceVersion,
+					atlasPath,
+					skeletonPath,
+					texturePaths,
+					resourceKeys,
+					bundleLease
+				);
+				bundleLease = null;
+				return bundle;
+			} finally {
+				if (bundleLease != null) bundleLease.Dispose();
+			}
 		}
 
 		private async Task<OperatorAssetFallbackManifest> LoadFallbackManifestAsync(
@@ -188,8 +240,11 @@ namespace ArknightsOperatorsMod {
 				Path.Combine("fallback", "manifests", FallbackManifestName),
 				FallbackReleaseTag
 			);
-			string path = await resources.GetOrDownloadAsync(request, cancellationToken).ConfigureAwait(false);
-			return OperatorAssetFallbackManifest.Load(path);
+			using (resources.Acquire(new[] { request.Key })) {
+				string path = await resources.GetOrDownloadAsync(request, cancellationToken)
+					.ConfigureAwait(false);
+				return OperatorAssetFallbackManifest.Load(path);
+			}
 		}
 
 		private async Task<OperatorAssetBundle> ResolveFromFallbackFilesAsync(
@@ -199,50 +254,63 @@ namespace ArknightsOperatorsMod {
 		) {
 			OperatorFallbackFile atlasFile = appearance.FindFile("atlas");
 			OperatorFallbackFile skeletonFile = appearance.FindFile("skel");
-			List<string> resourceKeys = new List<string>();
 			string atlasKey = AssetKeyForFile(package.CharacterId, appearance, atlasFile);
 			string skeletonKey = AssetKeyForFile(package.CharacterId, appearance, skeletonFile);
-			string atlasPath = await resources.GetOrDownloadAsync(
-				CreateFallbackFileRequest(atlasKey, appearance, atlasFile),
-				cancellationToken
-			).ConfigureAwait(false);
-			string skeletonPath = await resources.GetOrDownloadAsync(
-				CreateFallbackFileRequest(skeletonKey, appearance, skeletonFile),
-				cancellationToken
-			).ConfigureAwait(false);
-			resourceKeys.Add(atlasKey);
-			resourceKeys.Add(skeletonKey);
-
-			IList<string> pages = ParseAtlasPages(File.ReadAllText(atlasPath));
-			if (pages.Count == 0)
-				throw new InvalidDataException("Fallback atlas has no texture pages");
-			List<string> texturePaths = new List<string>();
-			for (int i = 0; i < pages.Count; i++) {
-				string pageName = ValidateRelativeAssetPath(pages[i]);
-				if (pageName.IndexOf('/') >= 0)
-					throw new InvalidDataException("Nested atlas page paths are not supported: " + pageName);
-				OperatorFallbackFile pageFile = appearance.FindFile("page", pageName);
-				if (pageFile == null)
-					throw new InvalidDataException("Fallback manifest has no atlas page: " + pageName);
-				string pageKey = AssetKeyForFile(package.CharacterId, appearance, pageFile);
-				texturePaths.Add(await resources.GetOrDownloadAsync(
-					CreateFallbackFileRequest(pageKey, appearance, pageFile),
+			string atlasPath;
+			IList<string> pages;
+			List<string> resourceKeys = new List<string> { atlasKey, skeletonKey };
+			List<OperatorFallbackFile> pageFiles = new List<OperatorFallbackFile>();
+			IDisposable bundleLease = null;
+			using (resources.Acquire(new[] { atlasKey })) {
+				atlasPath = await resources.GetOrDownloadAsync(
+					CreateFallbackFileRequest(atlasKey, appearance, atlasFile),
 					cancellationToken
-				).ConfigureAwait(false));
-				resourceKeys.Add(pageKey);
+				).ConfigureAwait(false);
+				pages = ParseAtlasPages(File.ReadAllText(atlasPath));
+				if (pages.Count == 0)
+					throw new InvalidDataException("Fallback atlas has no texture pages");
+				for (int i = 0; i < pages.Count; i++) {
+					string pageName = ValidateRelativeAssetPath(pages[i]);
+					if (pageName.IndexOf('/') >= 0)
+						throw new InvalidDataException("Nested atlas page paths are not supported: " + pageName);
+					OperatorFallbackFile pageFile = appearance.FindFile("page", pageName);
+					if (pageFile == null)
+						throw new InvalidDataException("Fallback manifest has no atlas page: " + pageName);
+					pageFiles.Add(pageFile);
+					resourceKeys.Add(AssetKeyForFile(package.CharacterId, appearance, pageFile));
+				}
+				bundleLease = resources.Acquire(resourceKeys);
 			}
 
-			return new OperatorAssetBundle(
-				package.CharacterId,
-				package.CharacterName,
-				appearance.Skin,
-				appearance.Model,
-				appearance.ResourceVersion,
-				atlasPath,
-				skeletonPath,
-				texturePaths,
-				resourceKeys
-			);
+			try {
+				string skeletonPath = await resources.GetOrDownloadAsync(
+					CreateFallbackFileRequest(skeletonKey, appearance, skeletonFile),
+					cancellationToken
+				).ConfigureAwait(false);
+				List<string> texturePaths = new List<string>();
+				for (int i = 0; i < pageFiles.Count; i++) {
+					texturePaths.Add(await resources.GetOrDownloadAsync(
+						CreateFallbackFileRequest(resourceKeys[i + 2], appearance, pageFiles[i]),
+						cancellationToken
+					).ConfigureAwait(false));
+				}
+				OperatorAssetBundle bundle = new OperatorAssetBundle(
+					package.CharacterId,
+					package.CharacterName,
+					appearance.Skin,
+					appearance.Model,
+					appearance.ResourceVersion,
+					atlasPath,
+					skeletonPath,
+					texturePaths,
+					resourceKeys,
+					bundleLease
+				);
+				bundleLease = null;
+				return bundle;
+			} finally {
+				if (bundleLease != null) bundleLease.Dispose();
+			}
 		}
 
 		private static PrtsAssetRequest CreateFallbackFileRequest(
@@ -273,6 +341,19 @@ namespace ArknightsOperatorsMod {
 				? "page:" + file.PageName
 				: file.Role;
 			return AssetKey(characterId, appearance.Skin, appearance.Model, type);
+		}
+
+		private static IList<string> ResourceKeysForAppearance(
+			OperatorFallbackPackage package,
+			OperatorFallbackAppearance appearance
+		) {
+			if (package == null) throw new ArgumentNullException("package");
+			if (appearance == null) throw new ArgumentNullException("appearance");
+			List<string> keys = new List<string>();
+			for (int i = 0; i < appearance.Files.Count; i++) {
+				keys.Add(AssetKeyForFile(package.CharacterId, appearance, appearance.Files[i]));
+			}
+			return keys;
 		}
 
 		internal static IList<string> ParseAtlasPages(string atlasText) {
