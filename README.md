@@ -101,6 +101,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [x] Runtime animation mapping and ground alignment
 - [x] Semantic build/battle animation profiles and a per-duplicant `Ctrl+F9` action wheel
 - [x] Per-duplicant operator, skin, and model settings with save persistence
+- [ ] Operator-specific collision profiles for visual size differences, with validation for pathfinding, ladders, beds, selection bounds, and save compatibility
 - [ ] Per-duplicant voice settings
 - [ ] Operator voice with language selection, preview, cooldown, and priority
 - [ ] Appearance preview, favourites, presets, and Printing Pod assignment pools
