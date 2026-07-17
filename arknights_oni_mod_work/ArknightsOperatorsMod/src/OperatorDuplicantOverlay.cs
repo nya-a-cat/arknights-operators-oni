@@ -698,7 +698,8 @@ namespace ArknightsOperatorsMod {
 			KBatchedAnimController[] controllers = GetComponentsInChildren<KBatchedAnimController>(true);
 			for (int i = 0; i < controllers.Length; i++) {
 				KBatchedAnimController controller = controllers[i];
-				if (controller != null && !sourceAnimations.Contains(controller)) sourceAnimations.Add(controller);
+				if (controller == null || controller.GetComponentInParent<Pickupable>() != null) continue;
+				if (!sourceAnimations.Contains(controller)) sourceAnimations.Add(controller);
 			}
 		}
 
