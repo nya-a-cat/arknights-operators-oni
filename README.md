@@ -124,6 +124,8 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [x] Automatic Chinese/English localization for the operator options interface
 - [x] Chinese/English/Japanese operator-name search from PRTS encyclopedia metadata
 - [x] Versioned all-operator fallback manifest, verified Release-package loader, and sharded GitHub Actions builder
+- [ ] Evolve content delivery to `local cache → pinned GitHub Release → bounded PRTS fallback`, with immutable manifest references that pin the Release tag, byte length, and SHA-256
+- [ ] Build versioned per-operator packages through low-concurrency GitHub Actions jobs; prohibit full-catalog prefetching, apply retry backoff and rate limits, and extend the same pipeline to Spine assets, preview thumbnails, voices, furniture, enemies, and effects
 - [ ] Configurable `128–2000 MiB` cache (default `512 MiB`): code and regression tests complete on `develop`; game validation pending
 - [ ] Generate, inspect, and publish the initial 449-operator `assets-v1.0.0` snapshot
 - [ ] Move remaining runtime errors and diagnostics into ONI `STRINGS` resources and add more interface locales
