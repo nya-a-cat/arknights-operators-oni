@@ -16,7 +16,7 @@ Version scope / 版本范围 / バージョン範囲：the published `0.3.2-alph
 
 ### 游戏内操作
 
-- 选中一个复制人，按 `Ctrl+F8`：为该复制人单独选择干员、皮肤和模型，并实时微调当前已加载模型的显示比例。
+- 选中一个复制人，按 `Ctrl+F8`：通过每页 20 张的 96px 干员头像卡选择干员；只按需获取当前页头像，右侧显示放大头像，缺图或离线时显示名称。头像用于识别干员，不随皮肤变化；切换皮肤或模型会在场景复制人上自动加载 Spine 预览，确认后再应用，并可微调该外观的显示比例。
 - 按 `Ctrl+Shift+F8`：打开资源策略、缓存容量、自动模型切换和默认外观大小设置。
 - 选中一个复制人，按 `Ctrl+F9`：打开动作转盘；中心按钮恢复 ONI 自动状态映射。
 - 搜索支持中文名、英文名、日文名、PRTS 重定向别名和 `char_id`。
@@ -40,7 +40,7 @@ Version scope / 版本范围 / バージョン範囲：the published `0.3.2-alph
 
 ### In-game controls
 
-- Select a duplicant and press `Ctrl+F8`: choose an individual operator, skin, and model, and adjust the loaded model's visual size live.
+- Select a duplicant and press `Ctrl+F8`: choose from pages of 20 cached 96px operator-avatar cards. Only the visible page is fetched on demand; the selected avatar is enlarged on the right and offline or missing images use name cards. Avatars identify operators and do not change with skins. Changing skin or model automatically loads the in-world Spine preview before applying, and the appearance size can be adjusted live.
 - Press `Ctrl+Shift+F8`: open resource policy, cache capacity, automatic model switching, and default appearance size settings.
 - Select a duplicant and press `Ctrl+F9`: open the action wheel; use the centre button to restore automatic ONI state mapping.
 - Search accepts Chinese, English, or Japanese names, PRTS redirect aliases, and `char_id`.
@@ -64,7 +64,7 @@ Version scope / 版本范围 / バージョン範囲：the published `0.3.2-alph
 
 ### ゲーム内操作
 
-- 複製人間を選択して `Ctrl+F8`：その複製人間専用のオペレーター、コーデ、モデルを選択し、読み込み済みモデルの表示倍率をリアルタイムで調整します。
+- 複製人間を選択して `Ctrl+F8`：1 ページ 20 枚のキャッシュ対応 96px オペレーターアイコンから選択します。表示中のページだけを必要時に取得し、右側で選択中のアイコンを拡大表示します。オフラインまたは画像がない場合は名前カードを表示します。アイコンはオペレーター識別用で、コーデでは変化しません。コーデまたはモデルを切り替えると、適用前にゲーム画面上の Spine プレビューが自動で読み込まれ、表示倍率も調整できます。
 - `Ctrl+Shift+F8`：リソース方式、キャッシュ容量、自動モデル切替、既定の外観サイズを開きます。
 - 複製人間を選択して `Ctrl+F9`：アクションホイールを開きます。中央ボタンで ONI の自動状態マッピングに戻ります。
 - 中国語名、英語名、日本語名、PRTS リダイレクト別名、`char_id` で検索できます。

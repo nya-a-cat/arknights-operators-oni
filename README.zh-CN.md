@@ -33,6 +33,7 @@
 - 在游戏内按中文名、英文名、日文名、PRTS 重定向别名或 `char_id` 搜索 449 个干员。
 - 设置界面自动选择中文或英文，干员显示名会结合当前游戏语言和 PRTS 已提供的中文、日文、英文元数据。
 - 联动选择干员、皮肤和模型。
+- 以每页 20 张卡片浏览 96px PRTS 干员头像；右侧放大当前头像，离线或缺图时显示名称占位卡。
 - 选中复制人后按 `Ctrl+F8` 单独设置干员、皮肤和模型；按 `Ctrl+Shift+F8` 打开轻量的全局资源、模型切换和大小设置。
 - 使用 C# 实时渲染 Spine 3.8 Region/Mesh、clipping、多 atlas page 和常用 blend mode。
 - 将 ONI 的移动、工作、休息、睡眠、压力和死亡状态映射到可用的干员动画。
@@ -102,6 +103,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 
 - [x] 支持中文、英文、日文、重定向别名和 `char_id` 的 449 干员目录
 - [x] 干员、皮肤和模型联动选择
+- [x] 96px 干员头像分页图库、仅当前页加载、名称占位卡，以及场景内 Spine 皮肤/模型预览（代码完成，等待实机验证）
 - [x] 通过 `Ctrl+F8` 实时切换单个复制人，并在 Mod Options 中提供轻量的全局运行与资源设置
 - [x] 运行时动画映射与地面对齐
 - [x] 基建/战斗语义动画档案，以及逐复制人的 `Ctrl+F9` 动作转盘
@@ -109,7 +111,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 - [ ] 干员专属碰撞体配置，适配视觉尺寸差异，并验证寻路、梯子、床铺、选择范围和存档兼容性
 - [ ] 每个复制人独立设置语音
 - [ ] 干员语音、语种选择、试听、冷却和优先级
-- [ ] 外观预览、收藏、预设和打印舱分配池
+- [ ] 收藏、预设和打印舱分配池
 
 ### 明日方舟内容
 
@@ -125,7 +127,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 - [x] 基于 PRTS 百科元数据的中文、英文、日文干员名搜索
 - [x] 全干员版本化备用清单、带校验的 Release 包加载器和 GitHub Actions 分片生成器
 - [ ] 将内容获取演进为“`本地缓存 → 固定 GitHub Release → 有界 PRTS 回退`”，manifest 固定 Release tag、字节长度和 SHA-256
-- [ ] 由低并发 GitHub Actions 生成版本化逐干员包；禁止全目录预取，执行重试退避与限流，并逐步覆盖 Spine、预览头像、语音、家具、敌人和特效
+- [ ] 由低并发 GitHub Actions 生成版本化逐干员包；禁止全目录预取，执行重试退避与限流，并把 GitHub Release 备用中转/快照逐步覆盖到 Spine、头像、语音、家具、敌人和特效
 - [ ] 可设置 `128–2000 MiB` 的缓存（默认 `512 MiB`）：`develop` 上的代码与回归测试已完成，等待实机验证
 - [ ] 生成、检查并发布首个 449 干员 `assets-v1.0.0` 快照
 - [ ] 把其余运行时错误与诊断迁移到 ONI `STRINGS`，并增加更多界面语种
@@ -170,6 +172,8 @@ cd arknights_oni_mod_work/ArknightsOperatorsMod
 ./build.sh
 ./tests/run_operator_animation_mapper_tests.sh
 ./tests/run_operator_appearance_catalog_tests.sh
+python3 ./tests/test_operator_catalog_thumbnails.py
+./tests/run_operator_thumbnail_loader_tests.sh
 ./tests/run_mod_localization_tests.sh
 ./tests/run_resource_index_tests.sh
 python3 ./tests/test_fallback_release_builder.py

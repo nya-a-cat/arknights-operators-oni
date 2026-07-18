@@ -31,13 +31,18 @@ window. A shared download that already started may finish in the background and 
 Before Unity image decoding, `OperatorThumbnailFile.Inspect` accepts PNG or JPEG headers and rejects
 files over `256 KiB` or decoded dimensions above `256 x 256`.
 
-## UI integration points
+## In-game UI integration
 
-The gallery window should create one `OperatorThumbnailLoader` and keep the returned assets for the
-current page only. Page changes dispose those assets before requesting the next 20 visible cards.
-Window close disposes the loader. Texture creation and `Texture2D.LoadImage` stay on Unity's main
-thread; network and file waiting may remain asynchronous. A missing URL, cancellation, validation
-failure, or offline miss maps to the existing name placeholder card.
+`Ctrl+F8` now renders 20 operator cards per page and a larger selected-operator avatar. The window
+creates one `OperatorThumbnailLoader` and keeps returned assets for the current page only. Search is
+debounced before thumbnail work starts; search or page changes cancel the page wait and dispose its
+textures and leases. Window close disposes the loader. Texture creation and `Texture2D.LoadImage`
+stay on Unity's main thread; network and file waiting remain asynchronous. A missing URL,
+cancellation, validation failure, or offline miss renders a name placeholder or visible failure
+caption.
+
+Changing skin or model starts the existing in-world Spine preview automatically. The 96px avatar
+identifies the operator and does not claim to represent the selected skin.
 
 The Mods options page must not create this loader. Thumbnail activity begins only after the user
 opens the operator gallery.
@@ -46,6 +51,7 @@ opens the operator gallery.
 
 - `tests/test_operator_catalog_thumbnails.py` mocks MediaWiki and checks 30-title batching, 96px URL
   capture, and URL-only catalog records.
-- `tests/run_operator_thumbnail_loader_tests.sh` uses an offline HTTP handler to check the approved
-  media host, request identity, cache reuse, 256 KiB limits, PNG/JPEG dimensions, leases, and
-  close-time cancellation.
+- `tests/run_operator_thumbnail_loader_tests.sh` uses an offline HTTP handler to check request
+  identity, cache reuse, PNG/JPEG header dimensions, and close-time cancellation.
+- Unity `Texture2D.LoadImage`, pagination lifecycle, and visible rendering remain game-validation
+  items for the installed Dev package.

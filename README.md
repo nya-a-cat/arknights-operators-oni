@@ -33,6 +33,7 @@ The recorded four-duplicant game-test baseline used the `0.3.2-alpha.1` candidat
 - Search a catalog of 449 operators by Chinese, English, or Japanese name, PRTS redirect alias, or `char_id` inside the game.
 - Use automatically selected Chinese or English option labels; operator display names prefer Chinese, Japanese, or English according to the current game language and available PRTS metadata.
 - Select an operator, skin, and model through linked controls.
+- Browse operators as 20-card pages with cached 96px PRTS avatars; the selected avatar is enlarged on the right and missing/offline images fall back to name cards.
 - Select a duplicant and press `Ctrl+F8` to assign its operator, skin, and model live; use `Ctrl+Shift+F8` for lightweight global resource, model-switching, and size settings.
 - Render Spine 3.8 Region/Mesh attachments, clipping, multiple atlas pages, and common blend modes directly in C#.
 - Map ONI movement, work, rest, sleep, stress, and death states to available operator animations.
@@ -102,6 +103,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 
 - [x] Searchable 449-operator catalog with Chinese, English, Japanese, redirect-alias, and `char_id` lookup
 - [x] Linked operator, skin, and model selection
+- [x] Paged 96px operator-avatar gallery with visible-page-only loading, name placeholders, and in-world Spine skin/model preview (code complete; game validation pending)
 - [x] Live per-duplicant switching from `Ctrl+F8`, with lightweight global runtime and resource settings in Mod Options
 - [x] Runtime animation mapping and ground alignment
 - [x] Semantic build/battle animation profiles and a per-duplicant `Ctrl+F9` action wheel
@@ -109,7 +111,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [ ] Operator-specific collision profiles for visual size differences, with validation for pathfinding, ladders, beds, selection bounds, and save compatibility
 - [ ] Per-duplicant voice settings
 - [ ] Operator voice with language selection, preview, cooldown, and priority
-- [ ] Appearance preview, favourites, presets, and Printing Pod assignment pools
+- [ ] Favourites, presets, and Printing Pod assignment pools
 
 ### Arknights content
 
@@ -125,7 +127,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [x] Chinese/English/Japanese operator-name search from PRTS encyclopedia metadata
 - [x] Versioned all-operator fallback manifest, verified Release-package loader, and sharded GitHub Actions builder
 - [ ] Evolve content delivery to `local cache → pinned GitHub Release → bounded PRTS fallback`, with immutable manifest references that pin the Release tag, byte length, and SHA-256
-- [ ] Build versioned per-operator packages through low-concurrency GitHub Actions jobs; prohibit full-catalog prefetching, apply retry backoff and rate limits, and extend the same pipeline to Spine assets, preview thumbnails, voices, furniture, enemies, and effects
+- [ ] Build versioned per-operator packages through low-concurrency GitHub Actions jobs; prohibit full-catalog prefetching, apply retry backoff and rate limits, and extend the GitHub Release fallback/snapshot pipeline to Spine assets, thumbnails, voices, furniture, enemies, and effects
 - [ ] Configurable `128–2000 MiB` cache (default `512 MiB`): code and regression tests complete on `develop`; game validation pending
 - [ ] Generate, inspect, and publish the initial 449-operator `assets-v1.0.0` snapshot
 - [ ] Move remaining runtime errors and diagnostics into ONI `STRINGS` resources and add more interface locales
@@ -170,6 +172,8 @@ cd arknights_oni_mod_work/ArknightsOperatorsMod
 ./build.sh
 ./tests/run_operator_animation_mapper_tests.sh
 ./tests/run_operator_appearance_catalog_tests.sh
+python3 ./tests/test_operator_catalog_thumbnails.py
+./tests/run_operator_thumbnail_loader_tests.sh
 ./tests/run_mod_localization_tests.sh
 ./tests/run_resource_index_tests.sh
 python3 ./tests/test_fallback_release_builder.py
