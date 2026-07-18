@@ -20,6 +20,10 @@ namespace ArknightsOperatorsMod {
 		private string scaleAppearanceKey;
 		private string scaleText = string.Empty;
 		private string scaleError;
+		private bool appearanceOperationPending;
+		private bool applyWhenAppearanceReady;
+		private string operationAppearanceKey;
+		private string operationStatus;
 
 		private void Update() {
 			if (dialogOpen) return;
@@ -93,6 +97,7 @@ namespace ArknightsOperatorsMod {
 				return;
 			}
 			if (target == null || selection == null || catalog == null) return;
+			if (UpdateAppearanceOperation()) return;
 			GUI.depth = -1100;
 			Rect panel = new Rect((Screen.width - PickerWidth) * 0.5f,
 				(Screen.height - PickerHeight) * 0.5f, PickerWidth, PickerHeight);
@@ -120,7 +125,7 @@ namespace ArknightsOperatorsMod {
 				ModLocalization.Text("中文 / English / 日本語 / ID", "Name / alias / char_id"));
 
 			IList<OperatorAppearanceDefinition> matches = catalog.Search(searchText, MaximumMatches);
-			if (!string.IsNullOrWhiteSpace(searchText) && matches.Count == 1 &&
+			if (!appearanceOperationPending && !string.IsNullOrWhiteSpace(searchText) && matches.Count == 1 &&
 				!string.Equals(matches[0].Id, selection.Character.Id, StringComparison.Ordinal))
 				selection = catalog.Normalize(matches[0].Id, selection.Skin.Name, selection.Model);
 			Rect listRect = new Rect(panel.x + 20f, panel.y + 124f, 405f, 438f);
@@ -134,9 +139,10 @@ namespace ArknightsOperatorsMod {
 				Color previousBackground = GUI.backgroundColor;
 				if (string.Equals(item.Id, selection.Character.Id, StringComparison.Ordinal))
 					GUI.backgroundColor = new Color(0.54f, 0.43f, 0.95f, 1f);
-				if (GUI.Button(new Rect(2f, i * 38f + 2f, listRect.width - 42f, 34f),
+				if (!appearanceOperationPending && GUI.Button(new Rect(2f, i * 38f + 2f, listRect.width - 42f, 34f),
 					OperatorLabel(item))) {
 					selection = catalog.Normalize(item.Id, selection.Skin.Name, selection.Model);
+					operationStatus = null;
 				}
 				GUI.backgroundColor = previousBackground;
 			}
@@ -150,34 +156,38 @@ namespace ArknightsOperatorsMod {
 
 			GUI.Label(new Rect(rightX, panel.y + 238f, 295f, 28f),
 				ModLocalization.Text("皮肤", "Skin"));
-			if (GUI.Button(new Rect(rightX, panel.y + 268f, 42f, 38f), "‹")) CycleSkin(-1);
+			if (!appearanceOperationPending &&
+				GUI.Button(new Rect(rightX, panel.y + 268f, 42f, 38f), "‹")) CycleSkin(-1);
 			GUI.Box(new Rect(rightX + 50f, panel.y + 268f, 195f, 38f), DisplayValue(selection.Skin.Name));
-			if (GUI.Button(new Rect(rightX + 253f, panel.y + 268f, 42f, 38f), "›")) CycleSkin(1);
+			if (!appearanceOperationPending &&
+				GUI.Button(new Rect(rightX + 253f, panel.y + 268f, 42f, 38f), "›")) CycleSkin(1);
 
 			GUI.Label(new Rect(rightX, panel.y + 326f, 295f, 28f),
 				ModLocalization.Text("首选模型", "Preferred model"));
-			if (GUI.Button(new Rect(rightX, panel.y + 356f, 42f, 38f), "‹")) CycleModel(-1);
+			if (!appearanceOperationPending &&
+				GUI.Button(new Rect(rightX, panel.y + 356f, 42f, 38f), "‹")) CycleModel(-1);
 			GUI.Box(new Rect(rightX + 50f, panel.y + 356f, 195f, 38f), DisplayValue(selection.Model));
-			if (GUI.Button(new Rect(rightX + 253f, panel.y + 356f, 42f, 38f), "›")) CycleModel(1);
+			if (!appearanceOperationPending &&
+				GUI.Button(new Rect(rightX + 253f, panel.y + 356f, 42f, 38f), "›")) CycleModel(1);
 
+			bool previousEnabled = GUI.enabled;
+			GUI.enabled = previousEnabled && !appearanceOperationPending;
 			if (GUI.Button(new Rect(rightX, panel.y + 414f, 295f, 38f),
 				ModLocalization.Text("预览当前皮肤", "Preview selected appearance")))
 				PreviewSelection();
+			GUI.enabled = previousEnabled;
 
 			DrawScaleEditor(rightX, panel.y + 458f);
-			GUI.Box(new Rect(rightX, panel.y + 526f, 295f, 36f), ModLocalization.Text(
-				"比例按当前实际模型保存，并由使用同一外观的复制人共享。",
-				"Size is saved for the selected skin and model."
-			));
+			GUI.Box(new Rect(rightX, panel.y + 526f, 295f, 36f),
+				string.IsNullOrEmpty(operationStatus) ? ModLocalization.Text(
+					"比例按选中的皮肤和模型保存。",
+					"Size is saved for the selected skin and model.") : operationStatus);
 
+			GUI.enabled = previousEnabled && !appearanceOperationPending;
 			if (GUI.Button(new Rect(panel.x + 20f, panel.y + 584f, 250f, 46f),
-				ModLocalization.Text("应用到这个复制人", "Apply to this duplicant"))) {
-				target.SetIndividualAppearance(selection.Character.Id, selection.Skin.Name, selection.Model);
-				ShowStatus(ModLocalization.Text("已设置 ", "Assigned ") +
-					DisplayName(selection.Character) + " → " + target.DuplicantName);
-				ClosePicker();
-				return;
-			}
+				ModLocalization.Text("应用到这个复制人", "Apply to this duplicant")))
+				ApplySelection();
+			GUI.enabled = previousEnabled;
 			if (GUI.Button(new Rect(panel.x + 285f, panel.y + 584f, 230f, 46f),
 				ModLocalization.Text("恢复全局默认", "Use global default"))) {
 				string targetName = target.DuplicantName;
@@ -191,17 +201,21 @@ namespace ArknightsOperatorsMod {
 		}
 
 		private void CycleSkin(int direction) {
+			if (appearanceOperationPending) return;
 			List<OperatorSkinDefinition> skins = selection.Character.Skins;
 			int index = skins.IndexOf(selection.Skin);
 			index = (index + direction + skins.Count) % skins.Count;
 			selection = catalog.Normalize(selection.Character.Id, skins[index].Name, selection.Model);
+			operationStatus = null;
 		}
 
 		private void CycleModel(int direction) {
+			if (appearanceOperationPending) return;
 			List<string> models = selection.Skin.Models;
 			int index = models.IndexOf(selection.Model);
 			index = (index + direction + models.Count) % models.Count;
 			selection = catalog.Normalize(selection.Character.Id, selection.Skin.Name, models[index]);
+			operationStatus = null;
 		}
 
 		private void ClosePicker() {
@@ -213,6 +227,10 @@ namespace ArknightsOperatorsMod {
 			scaleAppearanceKey = null;
 			scaleText = string.Empty;
 			scaleError = null;
+			appearanceOperationPending = false;
+			applyWhenAppearanceReady = false;
+			operationAppearanceKey = null;
+			operationStatus = null;
 		}
 
 		private void DrawScaleEditor(float x, float y) {
@@ -316,9 +334,67 @@ namespace ArknightsOperatorsMod {
 
 		private void PreviewSelection() {
 			if (target == null || selection == null) return;
+			BeginAppearanceOperation(false);
+		}
+
+		private void ApplySelection() {
+			if (target == null || selection == null) return;
+			BeginAppearanceOperation(true);
+		}
+
+		private void BeginAppearanceOperation(bool applyWhenReady) {
+			appearanceOperationPending = true;
+			applyWhenAppearanceReady = applyWhenReady;
+			operationAppearanceKey = SelectionScaleKey();
+			operationStatus = applyWhenReady ?
+				ModLocalization.Text("正在加载并应用外观……", "Loading and applying appearance...") :
+				ModLocalization.Text("正在加载预览……", "Loading preview...");
 			target.PreviewAppearance(selection.Character.Id, selection.Skin.Name, selection.Model);
-			ShowStatus(ModLocalization.Text("正在预览选中皮肤，点击应用后保存。",
-				"Previewing the selected appearance; click Apply to save it."));
+		}
+
+		private bool UpdateAppearanceOperation() {
+			if (!appearanceOperationPending || target == null || selection == null) return false;
+			if (!string.Equals(operationAppearanceKey, SelectionScaleKey(), StringComparison.Ordinal)) {
+				appearanceOperationPending = false;
+				applyWhenAppearanceReady = false;
+				operationStatus = ModLocalization.Text("选择已改变，请重试。",
+					"Selection changed; try again.");
+				return false;
+			}
+
+			string characterId = selection.Character.Id;
+			string skin = selection.Skin.Name;
+			string model = selection.Model;
+			if (target.IsAppearanceActive(characterId, skin, model)) {
+				appearanceOperationPending = false;
+				if (applyWhenAppearanceReady) {
+					string targetName = target.DuplicantName;
+					string displayName = DisplayName(selection.Character);
+					target.SetIndividualAppearance(characterId, skin, model);
+					applyWhenAppearanceReady = false;
+					ShowStatus(ModLocalization.Text("已设置 ", "Assigned ") +
+						displayName + " → " + targetName);
+					ClosePicker();
+					return true;
+				}
+				applyWhenAppearanceReady = false;
+				operationStatus = ModLocalization.Text("预览已加载。", "Preview ready.");
+				return false;
+			}
+			if (target.IsAppearanceLoading(characterId, skin, model)) return false;
+
+			appearanceOperationPending = false;
+			applyWhenAppearanceReady = false;
+			string error = target.LastAppearanceLoadError;
+			operationStatus = string.IsNullOrEmpty(error) ?
+				ModLocalization.Text("外观未能加载，请重试。", "Appearance did not load; try again.") :
+				ModLocalization.Text("加载失败：", "Load failed: ") + ShortError(error);
+			return false;
+		}
+
+		private static string ShortError(string value) {
+			const int maximumLength = 90;
+			return value.Length <= maximumLength ? value : value.Substring(0, maximumLength - 1) + "…";
 		}
 
 		private void ShowStatus(string text) {

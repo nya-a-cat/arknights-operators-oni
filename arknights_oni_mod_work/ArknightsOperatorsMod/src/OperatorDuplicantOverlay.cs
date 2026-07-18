@@ -77,6 +77,8 @@ namespace ArknightsOperatorsMod {
 		private string activeCharacterId;
 		private string activeSkin;
 		private string activeModel;
+		private string loadingAppearanceKey;
+		private string lastAppearanceLoadError;
 		private string loadingModel;
 		private string modelCandidate;
 		private string lastAttemptedModel;
@@ -179,6 +181,12 @@ namespace ArknightsOperatorsMod {
 
 		private void OnVisualScaleChanged(ModConfig config) {
 			if (config == null || appearanceConfig == null) return;
+			if (previewAppearanceConfig != null) {
+				previewAppearanceConfig.VisualScalePercent = config.VisualScalePercent;
+				previewAppearanceConfig.VisualScaleOverrides = config.VisualScaleOverrides == null ?
+					new Dictionary<string, int>(StringComparer.Ordinal) :
+					new Dictionary<string, int>(config.VisualScaleOverrides, StringComparer.Ordinal);
+			}
 			appearanceConfig = ResolveAppearanceConfig(config);
 			if (frameFallbackMode)
 				ApplyFrameFallbackTransform();
@@ -188,14 +196,23 @@ namespace ArknightsOperatorsMod {
 
 		private void ApplyAppearanceConfig(ModConfig config) {
 			if (config == null) return;
-			if (appearanceConfig != null && string.Equals(
-				ModConfigStore.AppearanceKey(appearanceConfig),
-				ModConfigStore.AppearanceKey(config), StringComparison.Ordinal)) return;
 			appearanceConfig = ModConfigStore.Clone(config);
+			ModConfig effectiveConfig = ConfigForEffectiveAnimation(CurrentEffectiveAnimation());
+			string effectiveKey = RuntimeAppearanceKey(effectiveConfig.DefaultCharacterId,
+				effectiveConfig.PreferredSkin, effectiveConfig.PreferredModel);
+			if (AppearanceMatchesActive(effectiveConfig)) {
+				if (!string.IsNullOrEmpty(loadingAppearanceKey)) {
+					loadGeneration++;
+					CancelPendingAppearanceLoad();
+				}
+				lastAppearanceLoadError = null;
+				return;
+			}
+			if (string.Equals(loadingAppearanceKey, effectiveKey, StringComparison.Ordinal)) return;
 			manualAction = null;
 			lastAttemptedModel = null;
 			modelCandidate = null;
-			BeginAppearanceLoad(ConfigForEffectiveAnimation(CurrentEffectiveAnimation()), !sourceHidden);
+			BeginAppearanceLoad(effectiveConfig, !sourceHidden);
 		}
 
 		private ModConfig ResolveAppearanceConfig(ModConfig globalConfig) {
@@ -209,6 +226,9 @@ namespace ArknightsOperatorsMod {
 			loadGeneration++;
 			CancelPendingAppearanceLoad();
 			loadCancellation = new CancellationTokenSource();
+			loadingAppearanceKey = RuntimeAppearanceKey(config.DefaultCharacterId,
+				config.PreferredSkin, config.PreferredModel);
+			lastAppearanceLoadError = null;
 			loadingModel = config.PreferredModel;
 			lastAttemptedModel = config.PreferredModel;
 			StartCoroutine(LoadAppearance(config, allowFallback, loadGeneration,
@@ -285,12 +305,20 @@ namespace ArknightsOperatorsMod {
 					bundle.Dispose();
 				}
 			}
-			if (remoteLoaded) yield break;
+			if (remoteLoaded) {
+				loadingAppearanceKey = null;
+				lastAppearanceLoadError = null;
+				yield break;
+			}
 
 			if (cancellationToken.IsCancellationRequested || generation != loadGeneration)
 				yield break;
 			if (!allowFallback) {
 				loadingModel = null;
+				loadingAppearanceKey = null;
+				lastAppearanceLoadError = remoteError == null ?
+					"Appearance loading failed." : remoteError.Message;
+				RestoreAppearanceConfigToActive();
 				Debug.LogWarning("[ArknightsOperatorsMod] Appearance switch failed; keeping current operator: " +
 					remoteError);
 				yield break;
@@ -326,10 +354,16 @@ namespace ArknightsOperatorsMod {
 
 			if (loaded) {
 				loadingModel = null;
+				loadingAppearanceKey = null;
+				lastAppearanceLoadError = null;
 				if (!sourceAlreadyHidden) HideSourceVisual();
 				Debug.Log("[ArknightsOperatorsMod] Operator overlay attached to " + gameObject.name);
 			} else {
 				loadingModel = null;
+				loadingAppearanceKey = null;
+				lastAppearanceLoadError = remoteError == null ?
+					"Appearance loading failed." : remoteError.Message;
+				RestoreAppearanceConfigToActive();
 				enabled = false;
 			}
 		}
@@ -343,6 +377,7 @@ namespace ArknightsOperatorsMod {
 			Task<OperatorAssetBundle> pending = Interlocked.Exchange(ref pendingBundleTask, null);
 			if (pending != null)
 				QueueBundleCleanup(pending);
+			loadingAppearanceKey = null;
 		}
 
 		private static void QueueBundleCleanup(Task<OperatorAssetBundle> task) {
@@ -384,6 +419,25 @@ namespace ArknightsOperatorsMod {
 
 		internal string ActiveModel {
 			get { return activeModel; }
+		}
+
+		internal bool IsAppearanceActive(string characterId, string skin, string model) {
+			string effectiveModel = EffectiveModelForSelection(model);
+			return string.Equals(activeCharacterId, characterId, StringComparison.OrdinalIgnoreCase) &&
+				string.Equals(activeSkin, skin, StringComparison.OrdinalIgnoreCase) &&
+				ModelMatches(effectiveModel, activeModel);
+		}
+
+		internal bool IsAppearanceLoading(string characterId, string skin, string model) {
+			if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(skin) ||
+				string.IsNullOrWhiteSpace(model)) return false;
+			return string.Equals(loadingAppearanceKey,
+				RuntimeAppearanceKey(characterId, skin, EffectiveModelForSelection(model)),
+				StringComparison.Ordinal);
+		}
+
+		internal string LastAppearanceLoadError {
+			get { return lastAppearanceLoadError; }
 		}
 
 		internal string ActiveAppearanceScaleKey {
@@ -442,9 +496,11 @@ namespace ArknightsOperatorsMod {
 		}
 
 		internal void ClearIndividualAppearance() {
+			bool hadPreview = previewAppearanceConfig != null;
 			previewAppearanceConfig = null;
-			if (appearanceOverride == null || !appearanceOverride.HasOverride) return;
-			appearanceOverride.Clear();
+			bool hadOverride = appearanceOverride != null && appearanceOverride.HasOverride;
+			if (hadOverride) appearanceOverride.Clear();
+			if (!hadPreview && !hadOverride) return;
 			ApplyAppearanceConfig(ResolveAppearanceConfig(ModConfigStore.Current));
 			Debug.Log("[ArknightsOperatorsMod] Global appearance restored for " + DuplicantName);
 		}
@@ -505,6 +561,36 @@ namespace ArknightsOperatorsMod {
 			loadGeneration++;
 			CancelPendingAppearanceLoad();
 			loadingModel = null;
+		}
+
+		private bool AppearanceMatchesActive(ModConfig config) {
+			return config != null &&
+				string.Equals(activeCharacterId, config.DefaultCharacterId,
+					StringComparison.OrdinalIgnoreCase) &&
+				string.Equals(activeSkin, config.PreferredSkin,
+					StringComparison.OrdinalIgnoreCase) &&
+				ModelMatches(config.PreferredModel, activeModel);
+		}
+
+		private void RestoreAppearanceConfigToActive() {
+			if (string.IsNullOrWhiteSpace(activeCharacterId) ||
+				string.IsNullOrWhiteSpace(activeSkin) ||
+				string.IsNullOrWhiteSpace(activeModel)) return;
+			ModConfig restored = appearanceConfig == null ? ModConfigStore.Current :
+				ModConfigStore.Clone(appearanceConfig);
+			restored.DefaultCharacterId = activeCharacterId;
+			restored.PreferredSkin = activeSkin;
+			restored.PreferredModel = activeModel;
+			appearanceConfig = restored;
+		}
+
+		private static string RuntimeAppearanceKey(string characterId, string skin, string model) {
+			return ModConfig.AppearanceScaleKey(characterId, skin, model);
+		}
+
+		private string EffectiveModelForSelection(string model) {
+			return OperatorAnimationMapper.PreferredModel(CurrentEffectiveAnimation(),
+				ModConfigStore.Current.AutomaticModelSwitching, model);
 		}
 
 		private static bool ModelMatches(string desired, string actual) {
