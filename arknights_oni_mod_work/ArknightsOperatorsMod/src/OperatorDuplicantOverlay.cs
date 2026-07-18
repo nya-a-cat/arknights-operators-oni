@@ -646,11 +646,29 @@ namespace ArknightsOperatorsMod {
 
 		private void LoadFrameFallback() {
 			activeCharacterId = "char_002_amiya";
-			activeSkin = "默认";
-			activeModel = PreferredFrameModel;
 			LoadFrameLibrary();
 			FrameAnimationDef initial = PickFrameAnimation(null);
-			LoadFrameFallback(initial != null ? initial.ManifestPath : ModAssets.AmiyaFrameManifestPath);
+			if (initial != null) {
+				LoadFrameFallback(initial);
+			} else {
+				activeSkin = PreferredFrameSkin;
+				activeModel = PreferredFrameModel;
+				LoadFrameFallback(ModAssets.AmiyaFrameManifestPath);
+			}
+		}
+
+		private void LoadFrameFallback(FrameAnimationDef definition) {
+			string previousSkin = activeSkin;
+			string previousModel = activeModel;
+			activeSkin = definition.Skin;
+			activeModel = definition.Model;
+			try {
+				LoadFrameFallback(definition.ManifestPath);
+			} catch {
+				activeSkin = previousSkin;
+				activeModel = previousModel;
+				throw;
+			}
 		}
 
 		private void LoadFrameFallback(string manifestPath) {
@@ -786,7 +804,7 @@ namespace ArknightsOperatorsMod {
 			FrameAnimationDef next = PickFrameAnimation(effectiveAnimation);
 			if (next == null || next.Animation == currentFrameAnimation) return;
 			try {
-				LoadFrameFallback(next.ManifestPath);
+				LoadFrameFallback(next);
 			} catch (Exception ex) {
 				Debug.LogWarning("[ArknightsOperatorsMod] Failed to switch frame animation to " + next.Animation + ": " + ex);
 			}

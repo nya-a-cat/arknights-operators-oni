@@ -223,25 +223,67 @@ namespace ArknightsOperatorsMod {
 				scaleText ?? string.Empty, 3);
 			GUI.Label(new Rect(x + 84f, y + 32f, 24f, 24f), "%");
 			if (!string.Equals(nextText, scaleText, StringComparison.Ordinal)) {
-				scaleText = nextText;
 				int scalePercent;
-				if (int.TryParse(scaleText, out scalePercent) &&
-					ModConfig.IsValidVisualScalePercent(scalePercent) &&
-					target.SetActiveVisualScalePercent(scalePercent)) {
-					scaleError = null;
+				if (int.TryParse(nextText, out scalePercent) &&
+					ModConfig.IsValidVisualScalePercent(scalePercent)) {
+					SaveScale(nextText, scalePercent);
 				} else {
+					scaleText = nextText;
 					scaleError = ModLocalization.Text("请输入 75–200 的整数", "Enter an integer from 75 to 200");
 				}
 			}
 			if (GUI.Button(new Rect(x + 116f, y + 28f, 179f, 32f),
 				ModLocalization.Text("恢复默认比例", "Restore default size")) &&
-				target.ResetActiveVisualScalePercent()) {
+				ResetScale()) {
 				scaleText = target.ActiveVisualScalePercent.ToString();
 				scaleError = null;
 			}
 			GUI.enabled = previousEnabled;
 			if (!string.IsNullOrEmpty(scaleError))
 				GUI.Label(new Rect(x, y + 63f, 295f, 24f), scaleError);
+		}
+
+		private void SaveScale(string nextText, int scalePercent) {
+			string previousText = scaleText;
+			ModConfig previousConfig = null;
+			try {
+				previousConfig = ModConfigStore.Current;
+				if (!target.SetActiveVisualScalePercent(scalePercent)) {
+					scaleText = previousText;
+					return;
+				}
+				scaleText = nextText;
+				scaleError = null;
+			} catch (Exception error) {
+				RestoreScaleAfterFailure(previousConfig, previousText, error);
+			}
+		}
+
+		private bool ResetScale() {
+			string previousText = scaleText;
+			ModConfig previousConfig = null;
+			try {
+				previousConfig = ModConfigStore.Current;
+				return target.ResetActiveVisualScalePercent();
+			} catch (Exception error) {
+				RestoreScaleAfterFailure(previousConfig, previousText, error);
+				return false;
+			}
+		}
+
+		private void RestoreScaleAfterFailure(ModConfig previousConfig, string previousText,
+			Exception error) {
+			if (previousConfig != null) {
+				try {
+					ModConfigStore.SaveAndApply(previousConfig);
+				} catch (Exception rollbackError) {
+					Debug.LogWarning("[ArknightsOperatorsMod] Size rollback reported an error: " +
+						rollbackError.Message);
+				}
+			}
+			scaleText = previousText;
+			scaleError = ModLocalization.Text("比例保存失败，请重试", "Could not save size; try again");
+			Debug.LogWarning("[ArknightsOperatorsMod] Could not save appearance size: " + error.Message);
 		}
 
 		private void RefreshScaleEditorWhenModelChanges() {
