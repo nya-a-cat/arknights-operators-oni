@@ -1,18 +1,18 @@
 # Branch and release channels / 分支与发布通道
 
-This document defines the workflow beginning with the `0.3.3` development line. The published `0.3.2-alpha.2` GitHub package and the current Steam Workshop item remain the public Alpha baseline until a later Stable package passes the gates below.
+This document defines the workflow introduced for the `0.3.3` release line. Version `0.3.3` is the current Stable baseline for GitHub and Steam Workshop; later development returns to `develop` and follows the same gates.
 
-本文规定从 `0.3.3` 开发线开始使用的流程。已经发布的 `0.3.2-alpha.2` GitHub 包和现有 Steam 创意工坊条目继续作为公开 Alpha 基线，直到后续 Stable 包通过本文门禁。
+本文规定从 `0.3.3` 版本线开始使用的流程。`0.3.3` 是当前 GitHub 与 Steam 创意工坊 Stable 基线；后续开发继续进入 `develop` 并沿用相同门禁。
 
 ## Branch policy / 分支策略
 
 | Branch | Purpose | Merge rule |
 | --- | --- | --- |
-| `main` | Game-tested stable source and release automation | Accept `develop → main` pull requests after cloud checks and explicit game-test confirmation |
+| `main` | Game-tested stable source and release automation | The owner directly advances it to the exact tested `develop` commit after cloud checks and explicit game-test confirmation |
 | `develop` | Daily integration and rapid development | Direct focused commits are allowed; every pushed commit must remain buildable by deterministic checks |
 | `feature/*` | Isolated high-risk work such as collision profiles, enemy assets, or resource-protocol changes | Merge into `develop` after focused verification, then delete the temporary branch |
 
-`main` rejects direct pushes, force pushes, and deletion. A single-maintainer repository does not require an additional approving reviewer. The required cloud check and the manual game-test result remain release gates.
+This single-maintainer repository uses direct owner updates from the tested `develop` commit to `main`. Required cloud checks and the manual game-test result remain release gates. Force pushes and branch deletion stay disabled except during an explicitly documented history-cleanup operation.
 
 The recommended local layout uses two lightweight Git worktrees that share the object database:
 
@@ -83,7 +83,7 @@ Every dirty package adds `local-dirty` to its effective version and filename, wr
 
 ## Nightly and cloud checks / Nightly 与云端检查
 
-GitHub Actions runs deterministic tests and package-identity checks for pushes to `develop` and pull requests targeting `develop` or `main`. The workflow uses `contents: read`, does not receive game assemblies, and does not upload PRTS artwork or runtime caches.
+GitHub Actions runs deterministic tests and package-identity checks for pushes to `develop` and `main`. The workflow uses `contents: read`, does not receive game assemblies, and does not upload PRTS artwork or runtime caches.
 
 The one-time history-cleanup push places the workflow infrastructure on `main`. In the target completed repository state, GitHub enables the schedule from `main` at `02:37` Beijing time (`18:37 UTC` on the previous calendar day), and every daily run explicitly checks out `develop`. It runs the small PRTS integration probe and retains its text report for seven days. This probe supplies an integration signal only; full Mod DLL and game testing remain local.
 
@@ -96,7 +96,7 @@ An official Nightly comes only from a clean, committed `develop` checkout. Its f
 1. Freeze the candidate on a clean `develop`, run deterministic tests, and create `0.3.3-rc.N` with the Testing identity. Require `dirty: false` and `eligibleForUpload: true` in its sidecar.
 2. Install the RC beside Stable, enable only RC, and test a copied save with four different operators, save/reload, movement, work, attack, sleep, stun, death, original-duplicant hiding, and ground alignment.
 3. Resolve defects on `develop`, issue a new RC, and repeat the affected checks plus the full final checklist.
-4. Open a `develop → main` pull request only after the RC result is recorded. Merge after required cloud checks and explicit manual game-test confirmation.
+4. After the RC result is recorded, directly advance `main` to the exact tested `develop` commit and require the cloud checks to pass on `main`.
 5. From a clean `main`, require `dirty: false` and `eligibleForUpload: true`, then stage `0.3.3` as a GitHub Draft Release with the Stable identity. Download and install the draft ZIP, then repeat the final game checklist against that exact file.
 6. Compare the tag, package version, source SHA, DLL hash, sidecar ZIP hash, and embedded `build-info.json` hash. Publish the same draft asset and upload that same ZIP to Steam Workshop item `3765340857`.
 

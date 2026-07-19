@@ -8,37 +8,25 @@ Operators are available today. Voice, base furniture, enemies, and visual effect
 
 [English](./README.md) · [简体中文](./README.zh-CN.md) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857) · [Usage: EN / 中文 / 日本語](./docs/usage_multilingual.md) · [Roadmap](#current-progress--roadmap) · [Installation](#installation)
 
-[![Version](https://img.shields.io/badge/version-0.3.3--dev-f39c12)](https://github.com/nya-a-cat/arknights-oni/tree/develop)
+[![Version](https://img.shields.io/badge/version-0.3.3-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.3)
 ![ONI tested](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
 ![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
 [![Repository](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
 
 </div>
 
-![Arknights Operators Alpha gameplay montage](./docs/images/arknights-oni-alpha-v0.3.2-workshop.png)
+![Arknights Operators in Oxygen Not Included](./docs/images/arknights-oni-v0.3.3-update.png)
 
 > [!IMPORTANT]
-> The published Stable version is `0.3.2-alpha.2`. The local `develop` line is now `0.3.3-dev` and implements the next **Arknights Operators** update.
+> Version `0.3.3` is the current Stable **Arknights Operators** release.
 >
 > Each duplicant can keep its own operator, skin, and model. A global default remains available for new duplicants and for duplicants without an individual override.
 >
-> This is an Alpha release. Several game-integration scenarios remain under validation.
+> This remains an early public release. Please report compatibility issues through GitHub Issues or QQ group `785437890`.
 >
-> Steam Workshop title: **Arknights Operators / 明日方舟干员 [Alpha]**. In-game Mods menu title: **Arknights Operators（明日方舟干员）**.
+> Steam Workshop title: **Arknights Operators / 明日方舟干员 [0.3.3]**. In-game Mods menu title: **Arknights Operators（明日方舟干员）**.
 
 The recorded four-duplicant game-test baseline used the `0.3.2-alpha.1` candidate on Oxygen Not Included build 740622. Texas, Amiya, Kal'tsit, and Exusiai were assigned to four different duplicants, saved, and restored after a full save reload.
-
-## Upcoming 0.3.3 update
-
-The current local `develop` build contains the following changes for the next release:
-
-- A paged 96px operator gallery with 20 cards per page, visible-page-only thumbnail loading, retryable failures, and offline name placeholders.
-- In-world skin/model previews and a persistent `Apply to this duplicant` action that survives closing the picker and save reloads.
-- A default visual size of `125%` plus per-appearance `75–200%` overrides keyed by `char_id + skin + model`.
-- A user-entered `128–2000 MiB` on-demand cache capacity with `512 MiB` as the default, plus permanent retention mode.
-- A movement-compatibility filter. The source snapshot still catalogs 449 operators; the picker exposes 420 operators and removes 30 skins whose metadata has no base model for walking. This excludes 29 combat-only characters from new selections.
-
-These changes remain on `develop` until the final Dev and RC game checks are complete. The existing Steam Workshop item continues to use the published Stable package.
 
 ## What makes it special?
 
@@ -51,8 +39,8 @@ These changes remain on `develop` until the final Dev and RC game checks are com
 - Map ONI movement, work, rest, sleep, stress, and death states to available operator animations.
 - Automatically use base models for daily/sleep states and front combat models for digging, combat, stun, and death.
 - Select a duplicant and press `Ctrl+F9` to open its action wheel for manual animation performances; the center button restores automatic mapping.
-- On the `0.3.3` development line, choose a configurable `128–2000 MiB` on-demand LRU cache (default `512 MiB`) or permanent retention of downloaded resources.
-- On the `0.3.3` development line, use a default visual size of `125%`, configurable from `75%` to `200%`; changing it updates loaded overlays without another asset download.
+- Choose a configurable `128–2000 MiB` on-demand LRU cache (default `512 MiB`) or permanent retention of downloaded resources.
+- Use a default visual size of `125%`, configurable from `75%` to `200%`; changing it updates loaded overlays without another asset download.
 - Merge concurrent requests for the same resource while allowing each duplicant to cancel its own wait independently.
 - Verify downloads with HTTPS source restrictions, temporary files, a SHA-256 index, and a 64 MiB per-file limit.
 - Prepare a verified loader and cloud builder for a versioned 449-operator GitHub Release fallback snapshot. The initial `assets-v1.0.0` snapshot is still unpublished.
@@ -96,7 +84,7 @@ The existing 64 MiB limit applies to an individual Spine source file as a downlo
 
 ## Resource strategies
 
-The published `0.3.2-alpha.2` package uses a fixed `512 MiB` on-demand budget. The `0.3.3` development line adds an integer capacity setting from `128` to `2000 MiB`, with `512 MiB` as the default.
+Version `0.3.3` provides an integer on-demand capacity setting from `128` to `2000 MiB`, with `512 MiB` as the default.
 
 | Mode | Behaviour | Best for |
 | --- | --- | --- |
@@ -141,7 +129,7 @@ See the [GitHub Release fallback design](./docs/github_release_asset_fallback.md
 - [x] Versioned all-operator fallback manifest, verified Release-package loader, and sharded GitHub Actions builder
 - [ ] Evolve content delivery to `local cache → pinned GitHub Release → bounded PRTS fallback`, with immutable manifest references that pin the Release tag, byte length, and SHA-256
 - [ ] Build versioned per-operator packages through low-concurrency GitHub Actions jobs; prohibit full-catalog prefetching, apply retry backoff and rate limits, and extend the GitHub Release fallback/snapshot pipeline to Spine assets, thumbnails, voices, furniture, enemies, and effects
-- [ ] Configurable `128–2000 MiB` cache (default `512 MiB`): code and regression tests complete on `develop`; game validation pending
+- [x] Configurable `128–2000 MiB` cache with `512 MiB` default, immediate LRU maintenance, and protected active resources
 - [ ] Generate, inspect, and publish the initial 449-operator `assets-v1.0.0` snapshot
 - [ ] Move remaining runtime errors and diagnostics into ONI `STRINGS` resources and add more interface locales
 - [ ] Cache manager, download status, and diagnostics export
@@ -159,7 +147,7 @@ See the [complete code review and roadmap](./docs/code_review_and_roadmap_202607
 
 ## Development
 
-The current development version is `0.3.3-dev`. `main` contains game-tested stable code, `develop` carries integrated development work, and isolated `feature/*` branches cover higher-risk changes. Nightly and RC packages use a separate Testing identity; the current Steam Workshop item receives Stable packages only. See [Release channels and branch policy](./docs/release_channels.md).
+Version `0.3.3` is the current Stable release. `main` contains game-tested stable code, `develop` carries integrated development work, and isolated `feature/*` branches cover higher-risk changes. Nightly and RC packages use a separate Testing identity; the current Steam Workshop item receives Stable packages only. See [Release channels and branch policy](./docs/release_channels.md).
 
 From the repository root, package each identity with:
 
