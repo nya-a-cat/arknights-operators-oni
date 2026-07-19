@@ -8,7 +8,7 @@
 
 [English](./README.md) · [简体中文](./README.zh-CN.md) · [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857) · [使用说明：中文 / English / 日本語](./docs/usage_multilingual.md) · [路线图](#当前进度与-roadmap) · [安装](#安装)
 
-[![版本](https://img.shields.io/badge/version-0.3.3--dev-f39c12)](https://github.com/nya-a-cat/arknights-oni/tree/develop)
+[![版本](https://img.shields.io/badge/version-0.3.3-6d5dfc)](https://github.com/nya-a-cat/arknights-oni/releases/tag/v0.3.3)
 ![ONI 实测](https://img.shields.io/badge/ONI_tested-740622-ea6b35)
 ![C#](https://img.shields.io/badge/C%23-Unity-512BD4?logo=csharp&logoColor=white)
 [![仓库](https://img.shields.io/badge/GitHub-arknights--oni-181717?logo=github)](https://github.com/nya-a-cat/arknights-oni)
@@ -18,19 +18,21 @@
 ![Arknights Operators Alpha 实机拼图](./docs/images/arknights-oni-alpha-v0.3.2-workshop.png)
 
 > [!IMPORTANT]
-> 当前已发布 Stable 版本为 `0.3.2-alpha.2`。本地 `develop` 开发线已经更新到 `0.3.3-dev`，用于准备下一次 **Arknights Operators（明日方舟干员）** 更新。
+> 当前 Stable 版本为 `0.3.3`，实现 **Arknights Operators（明日方舟干员）** 的本轮正式更新。
 >
 > 每个复制人都可以保存自己的干员、皮肤和模型；全局默认继续用于新复制人，以及没有单独覆盖的复制人。
 >
-> 这是 Alpha 测试版本，部分游戏内集成场景仍在专项验证中。
+> 当前仍属于早期公开版本。兼容问题可以通过 GitHub Issues 或 QQ 群 `785437890` 反馈。
 >
-> Steam 创意工坊标题为 **Arknights Operators / 明日方舟干员 [Alpha]**；游戏内“模组”菜单显示为 **Arknights Operators（明日方舟干员）**。
+> Steam 创意工坊标题为 **Arknights Operators / 明日方舟干员 [0.3.3]**；游戏内“模组”菜单显示为 **Arknights Operators（明日方舟干员）**。
 
 现有四复制人实机记录使用 ONI build 740622 和 `0.3.2-alpha.1` 候选包。德克萨斯、阿米娅、凯尔希和能天使分别分配给四个复制人，保存并完整重载存档后仍保持各自选择。
 
-## 即将发布的 0.3.3 更新
+## 0.3.3 更新内容
 
-当前本地 `develop` 已包含以下待发布功能：
+![Arknights Operators v0.3.3 更新实机截图](./docs/images/arknights-oni-v0.3.3-update.png)
+
+版本 `0.3.3` 包含：
 
 - 每页 20 张卡片的 96px 干员图库，只加载当前页头像，失败可以重试，离线时显示名称占位卡。
 - 场景内皮肤/模型预览，以及关闭选择面板和保存重载后仍能保持的“应用到此复制人”。
@@ -38,7 +40,7 @@
 - 用户可填写 `128–2000 MiB` 的按需缓存容量，默认 `512 MiB`，并保留永久保存已下载资源的模式。
 - 移动兼容过滤。轻量源目录仍记录 449 个干员；选择界面显示 420 个具备基建移动模型的干员，并隐藏缺少基建走路模型的 30 个皮肤，因此 29 个纯战斗角色不能再被新选择。
 
-这些功能会继续留在 `develop`，完成最终 Dev 和 RC 实机检查后再进入稳定版。现有 Steam 创意工坊条目继续使用已经发布的 Stable 包。
+上方图片是最终开发测试中的未经修改实机截图。
 
 ## 项目特色
 
@@ -51,8 +53,8 @@
 - 将 ONI 的移动、工作、休息、睡眠、压力和死亡状态映射到可用的干员动画。
 - 日常与睡眠状态自动使用基建模型，挖矿、战斗、眩晕和死亡自动使用正面战斗模型。
 - 选中复制人后按 `Ctrl+F9` 打开该复制人的动作转盘，手动表演动画；点击中心按钮恢复自动映射。
-- `0.3.3` 开发线提供可填写 `128–2000 MiB`、默认 `512 MiB` 的按需 LRU 缓存，以及永久保留已下载资源策略。
-- `0.3.3` 开发线默认把干员视觉大小设为 `125%`，可在 `75%–200%` 范围调整；修改后会直接更新已加载外观，不会重新下载资源。
+- 提供可填写 `128–2000 MiB`、默认 `512 MiB` 的按需 LRU 缓存，以及永久保留已下载资源策略。
+- 默认把干员视觉大小设为 `125%`，可在 `75%–200%` 范围调整；修改后会直接更新已加载外观，不会重新下载资源。
 - 合并相同资源的并发请求，同时允许每个复制人独立取消自己的等待。
 - 使用 HTTPS 来源限制、临时文件、SHA-256 索引校验和 64 MiB 单文件上限保护下载过程。
 - 已准备带校验的加载器和云端生成器，用于版本化的 449 干员 GitHub Release 备用快照；首个 `assets-v1.0.0` 快照仍未发布。
@@ -96,7 +98,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 
 ## 资源策略
 
-已经发布的 `0.3.2-alpha.2` 使用固定 `512 MiB` 按需预算。`0.3.3` 开发线新增 `128–2000 MiB` 的整数容量设置，默认值为 `512 MiB`。
+版本 `0.3.3` 提供 `128–2000 MiB` 的整数按需缓存容量设置，默认值为 `512 MiB`。
 
 | 模式 | 行为 | 适用场景 |
 | --- | --- | --- |
@@ -141,7 +143,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 - [x] 全干员版本化备用清单、带校验的 Release 包加载器和 GitHub Actions 分片生成器
 - [ ] 将内容获取演进为“`本地缓存 → 固定 GitHub Release → 有界 PRTS 回退`”，manifest 固定 Release tag、字节长度和 SHA-256
 - [ ] 由低并发 GitHub Actions 生成版本化逐干员包；禁止全目录预取，执行重试退避与限流，并把 GitHub Release 备用中转/快照逐步覆盖到 Spine、头像、语音、家具、敌人和特效
-- [ ] 可设置 `128–2000 MiB` 的缓存（默认 `512 MiB`）：`develop` 上的代码与回归测试已完成，等待实机验证
+- [x] 可设置 `128–2000 MiB` 的缓存，默认 `512 MiB`，支持立即 LRU 维护并保护正在使用的资源
 - [ ] 生成、检查并发布首个 449 干员 `assets-v1.0.0` 快照
 - [ ] 把其余运行时错误与诊断迁移到 ONI `STRINGS`，并增加更多界面语种
 - [ ] 缓存管理器、下载状态和诊断导出
@@ -159,7 +161,7 @@ Git 源码仓库不包含明日方舟图片、Spine 骨骼、atlas 或复制的 
 
 ## 开发
 
-当前开发版本为 `0.3.3-dev`。`main` 保存实机验证通过的稳定代码，`develop` 承载日常集成，高风险改动使用隔离的 `feature/*`。Nightly 与 RC 使用独立 Testing 身份，现有 Steam 创意工坊条目只接收 Stable 包。详见[分支与发布通道](./docs/release_channels.md)。
+当前 Stable 版本为 `0.3.3`。`main` 保存实机验证通过的稳定代码，`develop` 承载日常集成，高风险改动使用隔离的 `feature/*`。Nightly 与 RC 使用独立 Testing 身份，现有 Steam 创意工坊条目只接收 Stable 包。详见[分支与发布通道](./docs/release_channels.md)。
 
 在仓库根目录使用以下命令分别打包各身份：
 

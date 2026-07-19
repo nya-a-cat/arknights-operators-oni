@@ -11,6 +11,13 @@ This directory keeps the editable inputs, deterministic renderer, and production
 
 The current image uses one post-fix Oxygen Not Included screenshot containing four different operators. The script applies four fixed crops, scaling, borders, colour blocks, and text. GPT ImageGen was not used.
 
+## v0.3.3 update capture
+
+- Output and original capture: [`arknights-oni-v0.3.3-update.png`](./arknights-oni-v0.3.3-update.png)
+- Production record: [`arknights-oni-v0.3.3-update.capture.md`](./arknights-oni-v0.3.3-update.capture.md)
+
+The v0.3.3 image is an unedited 1109×652 Oxygen Not Included screenshot supplied after the final Dev test. No crop, generated pixels, text overlay, colour processing, or ImageGen step was used.
+
 ## Editing workflow
 
 1. Keep the original screenshot files under a versioned `source/<release>` directory.

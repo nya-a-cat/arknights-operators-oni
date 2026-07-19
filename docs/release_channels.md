@@ -1,8 +1,8 @@
 # Branch and release channels / 分支与发布通道
 
-This document defines the workflow beginning with the `0.3.3` development line. The published `0.3.2-alpha.2` GitHub package and the current Steam Workshop item remain the public Alpha baseline until a later Stable package passes the gates below.
+This document defines the workflow introduced for the `0.3.3` release line. Version `0.3.3` is the current Stable baseline for GitHub and Steam Workshop; later development returns to `develop` and follows the same gates.
 
-本文规定从 `0.3.3` 开发线开始使用的流程。已经发布的 `0.3.2-alpha.2` GitHub 包和现有 Steam 创意工坊条目继续作为公开 Alpha 基线，直到后续 Stable 包通过本文门禁。
+本文规定从 `0.3.3` 版本线开始使用的流程。`0.3.3` 是当前 GitHub 与 Steam 创意工坊 Stable 基线；后续开发继续进入 `develop` 并沿用相同门禁。
 
 ## Branch policy / 分支策略
 

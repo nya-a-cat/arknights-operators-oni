@@ -1,10 +1,10 @@
 # Arknights Operators usage / 使用说明 / 使い方
 
-QQ Alpha testing group / Alpha 测试交流群 / Alpha テスト交流グループ：`785437890`
+QQ feedback and play group / 反馈与联机交流群 / フィードバック交流グループ：`785437890`
 
-Steam Workshop / Steam 创意工坊 / Steam ワークショップ：[Arknights Operators / 明日方舟干员 [Alpha]](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857)
+Steam Workshop / Steam 创意工坊 / Steam ワークショップ：[Arknights Operators / 明日方舟干员 [0.3.3]](https://steamcommunity.com/sharedfiles/filedetails/?id=3765340857)
 
-Version scope / 版本范围 / バージョン範囲：the published Stable package is `0.3.2-alpha.2`; the current local development version is `0.3.3-dev` and will reach the Workshop after Dev, RC, and Stable validation. / 已发布 Stable 包为 `0.3.2-alpha.2`；当前本地开发版本为 `0.3.3-dev`，完成 Dev、RC 与 Stable 验证后才会进入创意工坊。/ 公開済み Stable パッケージは `0.3.2-alpha.2`、現在のローカル開発版は `0.3.3-dev` です。Dev、RC、Stable の検証後に Workshop へ反映されます。
+Version scope / 版本范围 / バージョン範囲：the current Stable package is `0.3.3` on GitHub and Steam Workshop. / 当前 GitHub 与 Steam 创意工坊 Stable 包为 `0.3.3`。/ 現在の GitHub と Steam Workshop の Stable パッケージは `0.3.3` です。
 
 ## 中文
 
@@ -20,7 +20,7 @@ Version scope / 版本范围 / バージョン範囲：the published Stable pack
 - 按 `Ctrl+Shift+F8`：打开资源策略、缓存容量、自动模型切换和默认外观大小设置。
 - 选中一个复制人，按 `Ctrl+F9`：打开动作转盘；中心按钮恢复 ONI 自动状态映射。
 - 搜索支持中文名、英文名、日文名、PRTS 重定向别名和 `char_id`。
-- `0.3.3-dev` 的轻量源目录记录 449 个干员，选择界面只显示 420 个具备基建移动模型的干员；29 个纯战斗角色和 30 个缺少基建走路模型的皮肤会被隐藏。
+- `0.3.3` 的轻量源目录记录 449 个干员，选择界面只显示 420 个具备基建移动模型的干员；29 个纯战斗角色和 30 个缺少基建走路模型的皮肤会被隐藏。
 - “恢复全局默认”会清除当前复制人的单独外观覆盖。
 
 ### 资源策略
@@ -45,7 +45,7 @@ Version scope / 版本范围 / バージョン範囲：the published Stable pack
 - Press `Ctrl+Shift+F8`: open resource policy, cache capacity, automatic model switching, and default appearance size settings.
 - Select a duplicant and press `Ctrl+F9`: open the action wheel; use the centre button to restore automatic ONI state mapping.
 - Search accepts Chinese, English, or Japanese names, PRTS redirect aliases, and `char_id`.
-- The `0.3.3-dev` metadata snapshot contains 449 operators. The picker exposes 420 operators with a base movement model and hides 29 combat-only characters plus 30 skins without a base walking model.
+- The `0.3.3` metadata snapshot contains 449 operators. The picker exposes 420 operators with a base movement model and hides 29 combat-only characters plus 30 skins without a base walking model.
 - `Use global default` removes the selected duplicant's individual appearance override.
 
 ### Resource strategies
@@ -70,7 +70,7 @@ Version scope / 版本范围 / バージョン範囲：the published Stable pack
 - `Ctrl+Shift+F8`：リソース方式、キャッシュ容量、自動モデル切替、既定の外観サイズを開きます。
 - 複製人間を選択して `Ctrl+F9`：アクションホイールを開きます。中央ボタンで ONI の自動状態マッピングに戻ります。
 - 中国語名、英語名、日本語名、PRTS リダイレクト別名、`char_id` で検索できます。
-- `0.3.3-dev` のメタデータには 449 人が含まれます。選択画面には基地移動モデルを持つ 420 人だけを表示し、戦闘専用 29 人と基地歩行モデルのない 30 コーデを非表示にします。
+- `0.3.3` のメタデータには 449 人が含まれます。選択画面には基地移動モデルを持つ 420 人だけを表示し、戦闘専用 29 人と基地歩行モデルのない 30 コーデを非表示にします。
 - `グローバル既定値を使用` は、その複製人間の個別外観設定を解除します。
 
 ### リソース保存方式
@@ -81,8 +81,8 @@ Version scope / 版本范围 / バージョン範囲：the published Stable pack
 - どちらの方式も 449 オペレーターの全リソースを事前ダウンロードしません。
 - ユーザー設定容量は、Spine ソース 1 ファイルあたり `64 MiB` の制限とフォールバックパッケージの `512 MiB` 安全上限を変更しません。
 
-## Alpha notes / Alpha 说明 / Alpha 注意事項
+## Version 0.3.3 notes / 0.3.3 版本说明 / バージョン 0.3.3 注意事項
 
-- 中文：现有四干员实机证据来自 `0.3.2-alpha.1` 候选包和 Oxygen Not Included `740622`。动作转盘仅控制视觉表演，不改变工作、生命、压力、碰撞或模拟状态。发布包包含代码、轻量目录与第三方声明，外观资源按需获取。问题反馈请加入 QQ 群 `785437890` 或使用 GitHub Issues。
-- English: The recorded four-operator game test used the `0.3.2-alpha.1` candidate on Oxygen Not Included build `740622`. Action-wheel entries only control visual performances; jobs, health, stress, collision, and simulation state remain unchanged. The package contains code, lightweight catalog metadata, and third-party notices; appearance resources are retrieved on demand. Send feedback through QQ group `785437890` or GitHub Issues.
-- 日本語：4 人のオペレーターに関する実機記録は、`0.3.2-alpha.1` 候補版と Oxygen Not Included `740622` を使用しています。アクションホイールは表示上の演技だけを制御し、作業、生命、ストレス、当たり判定、シミュレーション状態は変更しません。配布パッケージにはコード、軽量カタログ、第三者表記が含まれ、外観リソースは必要時に取得します。フィードバックは QQ グループ `785437890` または GitHub Issues へお寄せください。
+- 中文：`0.3.3` 已完成维护者实机确认，覆盖干员图库、逐复制人外观、皮肤与模型预览、应用后持久化、独立比例和移动兼容过滤。动作转盘仅控制视觉表演，不改变工作、生命、压力、碰撞或模拟状态。发布包包含代码、轻量目录与第三方声明，外观资源按需获取。问题反馈请加入 QQ 群 `785437890` 或使用 GitHub Issues。
+- English: Version `0.3.3` completed maintainer game verification for the operator gallery, per-duplicant appearances, skin/model preview, persistent apply, per-appearance scale, and movement compatibility filtering. Action-wheel entries control visual performances only; jobs, health, stress, collision, and simulation state remain unchanged. The package contains code, lightweight catalog metadata, and third-party notices; appearance resources are retrieved on demand. Send feedback through QQ group `785437890` or GitHub Issues.
+- 日本語：バージョン `0.3.3` は、オペレーター一覧、複製人間ごとの外観、コーデとモデルのプレビュー、適用後の保存、外観別倍率、移動互換フィルターについてメンテナーの実機確認を完了しています。アクションホイールは表示上の演技だけを制御し、作業、生命、ストレス、当たり判定、シミュレーション状態は変更しません。配布パッケージにはコード、軽量カタログ、第三者表記が含まれ、外観リソースは必要時に取得します。フィードバックは QQ グループ `785437890` または GitHub Issues へお寄せください。
